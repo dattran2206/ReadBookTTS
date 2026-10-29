@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    name="viewport">
+  <meta content="mobile_tab" name="shell-type">
+  <title>Cài Đặt Văn Âm Mobile - Văn Âm EPUB</title>
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&amp;display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet">
+  <style>
+    @layer base {
+
+      html,
+      body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        overscroll-behavior: none;
+      }
+
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-container": "#b45309",
+            "on-primary-fixed-variant": "#763300",
+            "surface-dim": "#e2d8d2",
+            "surface-container-high": "#f0e6e0",
+            "secondary-fixed-dim": "#bcc7de",
+            "outline-variant": "#ddc1b3",
+            "surface-container": "#f6ece6",
+            "on-tertiary-container": "#ccffe2",
+            "surface-container-highest": "#eae1da",
+            "on-secondary-container": "#586377",
+            "tertiary": "#006443",
+            "on-error": "#ffffff",
+            "primary-fixed-dim": "#ffb68e",
+            "on-tertiary-fixed-variant": "#005236",
+            "surface-tint": "#9b4500",
+            "secondary-container": "#d5e0f8",
+            "tertiary-fixed": "#6ffbbe",
+            "on-secondary-fixed-variant": "#3c475a",
+            "on-background": "#1f1b17",
+            "error-container": "#ffdad6",
+            "surface-container-low": "#fcf2eb",
+            "on-tertiary-fixed": "#002113",
+            "on-secondary-fixed": "#111c2d",
+            "secondary": "#545f73",
+            "on-primary-container": "#fff1eb",
+            "on-surface-variant": "#564338",
+            "tertiary-fixed-dim": "#4edea3",
+            "inverse-surface": "#342f2b",
+            "tertiary-container": "#007f57",
+            "surface-variant": "#eae1da",
+            "surface-bright": "#fff8f5",
+            "secondary-fixed": "#d8e3fb",
+            "outline": "#897267",
+            "error": "#ba1a1a",
+            "on-surface": "#1f1b17",
+            "surface-container-lowest": "#ffffff",
+            "background": "#fff8f5",
+            "primary": "#903f00",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#331200",
+            "surface": "#fff8f5",
+            "inverse-on-surface": "#f9efe8",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#ffb68e",
+            "primary-fixed": "#ffdbca"
+          },
+          fontFamily: {
+            "body-ui": ["Be Vietnam Pro", "sans-serif"],
+            "headline-lg": ["Literata", "serif"],
+            "headline-md": ["Literata", "serif"],
+            "body-reading-md": ["Literata", "serif"]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+
+<body class="bg-background font-body-ui text-on-surface antialiased flex flex-col min-h-screen select-none">
+  <!-- Minimal Header -->
+  <header
+    class="fixed top-0 inset-x-0 z-40 bg-surface/90 backdrop-blur-md pt-safe shadow-[0_1px_12px_rgba(40,25,10,0.06)]">
+    <div class="h-14 px-5 flex items-center justify-between">
+      <h1 class="font-headline-lg text-[22px] tracking-tight font-semibold text-on-surface">Cài đặt</h1>
+    </div>
+  </header>
+  <!-- Main Content Slot -->
+  <main class="flex-1 w-full pt-14 pb-36 px-5 flex flex-col gap-5">
+    <div class="flex flex-col w-full gap-5 pb-8">
+      <div class="relative overflow-hidden rounded-2xl bg-surface-container-low p-4 shadow-sm">
+        <div class="flex items-center gap-3.5">
+          <div
+            class="relative w-14 h-14 rounded-full overflow-hidden shadow-xs flex-shrink-0 bg-surface-container-high">
+            <img class="w-full h-full object-cover" alt="Avatar Trần Đạt"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZrEzdFmgc5rAlUdZHQS5N3Ojw5C-xlcsCN4fcN9nVAfWSyjMSj7bNy2wGA2Rmj9LvyCZI2BmyccLk57nGlOp_jArlub9GVX8xC-hjgbszMLRxW0-aOahlfHtkA-JvXaDdn89XH6qrikCKTxf07lSb4d53BZI8H5Fs6lJmbYBLyvia5kSflIy9eAOOPc1ONbyiww_iXsKC-E8Jk9k0IyCMN14stdpoqgueJZUyfnqK2kvNm41fbkh6">
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <h2 class="font-headline-md text-headline-md text-on-surface truncate">Trần Đạt</h2><span
+                class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-caption text-caption font-medium">Độc
+                giả</span>
+            </div>
+            <div class="flex items-center gap-1.5 mt-1 text-primary"><span
+                class="material-symbols-outlined text-[16px]">local_fire_department</span><span
+                class="font-body-ui text-label-md font-medium text-primary">7 ngày liên tục</span></div>
+          </div><button aria-label="Chỉnh sửa hồ sơ"
+            class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-95 transition-all"><span
+              class="material-symbols-outlined text-[20px]">chevron_right</span></button>
+        </div>
+      </div>
+      <div
+        class="flex items-center justify-between p-4 rounded-2xl bg-surface-container-lowest shadow-sm hover:bg-surface-container-low active:scale-[0.99] transition-all cursor-pointer">
+        <div class="flex items-center gap-3 min-w-0">
+          <div
+            class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center text-primary-container flex-shrink-0">
+            <span class="material-symbols-outlined text-[22px]">insights</span>
+          </div>
+          <div class="flex flex-col min-w-0"><span class="font-body-ui text-label-lg font-medium text-on-surface">Thống
+              kê nghe đọc</span><span class="font-caption text-caption text-on-surface-variant truncate">38g 15p • 12
+              tác phẩm • Thói quen đọc</span></div>
+        </div>
+        <div class="flex items-center text-on-surface-variant"><span
+            class="material-symbols-outlined text-[20px]">chevron_right</span></div>
+      </div>
+      <div class="flex flex-col gap-2"><span
+          class="font-headline-md text-label-md uppercase tracking-wider text-on-surface-variant px-1 font-semibold">Trải
+          nghiệm đọc &amp; nghe</span>
+        <div class="rounded-2xl bg-surface-container-lowest shadow-sm overflow-hidden flex flex-col">
+          <div
+            class="flex items-center justify-between p-4 border-b border-surface-container-high/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">format_size</span><span
+                class="font-body-ui text-label-lg text-on-surface">Giao diện &amp; Chữ</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">Trắng
+                ngà • 17px</span><span class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+          <div
+            class="flex items-center justify-between p-4 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">play_circle</span><span
+                class="font-body-ui text-label-lg text-on-surface">Phát âm thanh</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">Tự
+                cuộn, Dừng hết chương</span><span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2"><span
+          class="font-headline-md text-label-md uppercase tracking-wider text-on-surface-variant px-1 font-semibold">Âm
+          thanh &amp; Bộ nhớ</span>
+        <div class="rounded-2xl bg-surface-container-lowest shadow-sm overflow-hidden flex flex-col">
+          <div
+            class="flex items-center justify-between p-4 border-b border-surface-container-high/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">record_voice_over</span><span
+                class="font-body-ui text-label-lg text-on-surface">Giọng đọc &amp; phát âm</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">1.0x •
+                Từ điển 14 từ</span><span class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+          <div
+            class="flex items-center justify-between p-4 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">sd_storage</span><span
+                class="font-body-ui text-label-lg text-on-surface">Lưu trữ offline</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">Đã
+                dùng 320 MB / Còn trống 1.7 GB</span><span
+                class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2"><span
+          class="font-headline-md text-label-md uppercase tracking-wider text-on-surface-variant px-1 font-semibold">Hệ
+          thống &amp; Đồng bộ</span>
+        <div class="rounded-2xl bg-surface-container-lowest shadow-sm overflow-hidden flex flex-col">
+          <div
+            class="flex items-center justify-between p-4 border-b border-surface-container-high/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">cloud_sync</span><span
+                class="font-body-ui text-label-lg text-on-surface">Sao lưu &amp; Dữ liệu</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span
+                class="font-body-ui text-label-md text-tertiary font-medium">iCloud bật</span><span
+                class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+          <div
+            class="flex items-center justify-between p-4 border-b border-surface-container-high/70 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">notifications</span><span
+                class="font-body-ui text-label-lg text-on-surface">Thông báo</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">Nhắc
+                đọc 21:00</span><span class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+          <div
+            class="flex items-center justify-between p-4 hover:bg-surface-container-low cursor-pointer transition-colors">
+            <div class="flex items-center gap-3"><span
+                class="material-symbols-outlined text-primary text-[20px]">bedtime</span><span
+                class="font-body-ui text-label-lg text-on-surface">Hẹn giờ ngủ mặc định</span></div>
+            <div class="flex items-center gap-1 text-on-surface-variant"><span class="font-body-ui text-label-md">30
+                phút</span><span class="material-symbols-outlined text-[18px]">chevron_right</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col items-center justify-center pt-3 pb-2 text-center">
+        <div
+          class="w-9 h-9 rounded-2xl bg-surface-container-high flex items-center justify-center text-primary-container mb-2 shadow-xs">
+          <span class="material-symbols-outlined text-[22px]">local_florist</span>
+        </div><span class="font-headline-md text-label-lg text-on-surface">Văn Âm EPUB • Phiên bản 1.2.0</span>
+        <div class="flex items-center gap-3 mt-2"><button
+            class="font-caption text-caption text-primary hover:underline">Điều khoản</button><span
+            class="text-outline-variant">•</span><button
+            class="font-caption text-caption text-primary hover:underline">Nhật ký bản cập nhật</button><span
+            class="text-outline-variant">•</span><button
+            class="font-caption text-caption text-primary hover:underline">Đóng góp phản hồi</button></div>
+      </div>
+    </div>
+  </main>
+  <!-- Mini Player Floating Shelf -->
+  <div class="fixed bottom-16 inset-x-0 z-40 px-4 pointer-events-none pb-2">
+    <div
+      class="pointer-events-auto w-full h-14 bg-surface-container-lowest/95 backdrop-blur-xl rounded-2xl shadow-[0_4px_20px_rgba(40,25,10,0.12)] border border-surface-container-high/80 px-3.5 flex items-center justify-between gap-3 cursor-pointer active:scale-[0.99] transition-all"
+      id="mini-player">
+      <div
+        class="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7a3700] to-[#451e03] flex items-center justify-center text-white/90 shadow-xs flex-shrink-0">
+        <span class="material-symbols-outlined text-[18px]">auto_stories</span>
+      </div>
+      <div class="min-w-0 flex-1 flex flex-col justify-center">
+        <p class="text-[13px] font-medium text-on-surface truncate leading-tight" id="player-title">Dế Mèn Phiêu Lưu Ký
+          <span class="font-normal text-on-surface-variant">• Chương 3</span>
+        </p>
+        <p class="text-[11px] text-on-surface-variant truncate mt-0.5" id="player-sub">Giọng NSƯT Mai Lan • Còn 14 phút
+        </p>
+      </div>
+      <div class="flex items-center gap-1">
+        <button aria-label="Phát hoặc tạm dừng"
+          class="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-xs active:scale-90 transition-transform"
+          id="player-toggle">
+          <span class="material-symbols-outlined text-[20px]" id="player-icon"
+            style="font-variation-settings: 'FILL' 1;">pause</span>
+        </button>
+      </div>
+      <div class="absolute left-3 right-3 bottom-0 h-0.5 bg-surface-container-high rounded-full overflow-hidden">
+        <div class="h-full bg-primary-container" id="player-progress-bar" style="width: 48%"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Bottom Tab Navigation Bar -->
+  <nav
+    class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/95 backdrop-blur-xl border-t border-surface-container-high/70"
+    data-active-classes="text-primary-container">
+    <div class="flex justify-around items-center h-16 px-2">
+      <!-- Tab 1: Thư viện -->
+      <a class="tab-item flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform"
+        data-path="thu-vien" href="#">
+        <div
+          class="tab-icon-wrap w-12 h-7 rounded-full flex items-center justify-center text-on-surface-variant mb-0.5">
+          <span class="material-symbols-outlined text-[20px]">local_library</span>
+        </div>
+        <span class="tab-label text-[11px] font-normal">Thư viện</span>
+      </a>
+      <!-- Tab 2: Đang nghe -->
+      <a class="tab-item flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform"
+        data-path="chi-tiet-sach" href="#">
+        <div
+          class="tab-icon-wrap w-12 h-7 rounded-full flex items-center justify-center text-on-surface-variant mb-0.5">
+          <span class="material-symbols-outlined text-[20px]">headphones</span>
+        </div>
+        <span class="tab-label text-[11px] font-normal">Đang nghe</span>
+      </a>
+      <!-- Tab 3: Giọng đọc -->
+      <a class="tab-item flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform"
+        data-path="quan-ly-giong-doc" href="#">
+        <div
+          class="tab-icon-wrap w-12 h-7 rounded-full flex items-center justify-center text-on-surface-variant mb-0.5">
+          <span class="material-symbols-outlined text-[20px]">record_voice_over</span>
+        </div>
+        <span class="tab-label text-[11px] font-normal">Giọng đọc</span>
+      </a>
+      <!-- Tab 4: Cài đặt -->
+      <a class="tab-item flex flex-col items-center justify-center flex-1 h-full text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform text-primary-container"
+        data-path="cai-dat" href="#">
+        <div
+          class="tab-icon-wrap w-12 h-7 rounded-full flex items-center justify-center text-on-surface-variant mb-0.5 bg-primary-fixed">
+          <span class="material-symbols-outlined text-[20px]">settings</span>
+        </div>
+        <span class="tab-label text-[11px] font-normal">Cài đặt</span>
+      </a>
+    </div>
+  </nav>
+  <script>
+    const playbackStore = {
+      id: "demen",
+      title: "Dế Mèn Phiêu Lưu Ký",
+      author: "Tô Hoài",
+      chapter: "Chương 3: Thoát khỏi tay hai đứa trẻ",
+      progress: 48,
+      currentTime: "12:45",
+      totalTime: "26:30",
+      remaining: "Còn 14 phút",
+      voice: "NSƯT Mai Lan",
+      isPlaying: true
+    };
+    const playerTitle = document.getElementById("player-title");
+    const playerSub = document.getElementById("player-sub");
+    const playerIcon = document.getElementById("player-icon");
+    const playerProgress = document.getElementById("player-progress-bar");
+    const playerToggle = document.getElementById("player-toggle");
+    const miniPlayer = document.getElementById("mini-player");
+    function updateMiniPlayerUI() {
+      if (!playerTitle) return;
+      playerTitle.innerHTML = `${playbackStore.title} <span class="font-normal text-on-surface-variant">• ${playbackStore.chapter.split(':')[0]}</span>`;
+      playerSub.textContent = `Giọng ${playbackStore.voice} • ${playbackStore.remaining}`;
+      playerProgress.style.width = playbackStore.progress + "%";
+      playerIcon.textContent = playbackStore.isPlaying ? "pause" : "play_arrow";
+    }
+    playerToggle?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      playbackStore.isPlaying = !playbackStore.isPlaying;
+      updateMiniPlayerUI();
+    });
+    miniPlayer?.addEventListener("click", () => {
+      const activeTabBtn = document.querySelector('[data-path="chi-tiet-sach"]');
+      if (activeTabBtn) activeTabBtn.click();
+    });
+    updateMiniPlayerUI();
+  </script>
+
+
+</body>
+
+</html>

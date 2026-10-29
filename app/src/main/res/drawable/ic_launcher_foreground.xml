@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Outer Headphone Arch / Sound Halo in Warm Gold (#FDE68A) -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M33,54 C33,41.85 42.4,32 54,32 C65.6,32 75,41.85 75,54"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+
+    <!-- Soundwave Bars rising from the center of the book (#FDE68A) -->
+    <!-- Center Bar -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,37 L54,48"
+        android:strokeWidth="3.2"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+    <!-- Inner Left & Right Bars -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M48,40.5 L48,48.5"
+        android:strokeWidth="3.0"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M60,40.5 L60,48.5"
+        android:strokeWidth="3.0"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+    <!-- Outer Left & Right Bars -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M42,44 L42,49"
+        android:strokeWidth="2.8"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M66,44 L66,49"
+        android:strokeWidth="2.8"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+
+    <!-- Open Book Left Page (#FFF8F5) -->
+    <path
+        android:fillColor="#FFFFF8F5"
+        android:pathData="M52.5,53.5 C46.5,50.2 38.5,49.8 32,51.5 L32,71.5 C38.5,69.8 46.5,70.2 52.5,73.5 Z" />
+
+    <!-- Open Book Right Page (#FFF8F5) -->
+    <path
+        android:fillColor="#FFFFF8F5"
+        android:pathData="M55.5,53.5 C61.5,50.2 69.5,49.8 76,51.5 L76,71.5 C69.5,69.8 61.5,70.2 55.5,73.5 Z" />
+
+    <!-- Subtle Lower Page Layer / Book Cover Lip (#FDE68A) -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M31,74.5 C38.5,72.8 46.8,73.5 54,76.8 C61.2,73.5 69.5,72.8 77,74.5"
+        android:strokeWidth="2.6"
+        android:strokeColor="#FFFDE68A"
+        android:strokeLineCap="round" />
+</vector>

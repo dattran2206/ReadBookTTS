@@ -1,0 +1,86 @@
+{
+  "project": {
+    "id": "7395805293520830041",
+    "title": "VietReader TTS App UI"
+  },
+  "screens": [
+    {
+      "order": 1,
+      "id": "eb56efe941344ebc90c272a918c33b00",
+      "title": "Thư viện - Văn Âm Mobile",
+      "slug": "01-thu-vien",
+      "width": 780,
+      "height": 2016,
+      "deviceType": "MOBILE",
+      "imageFile": "01-thu-vien.png",
+      "htmlFile": "01-thu-vien.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UkW4KogyaFXBCxPeeybadX9bm7U480gTdAEYxcPFEzcUAx3T7zQCL0HNjhgtFRDDfJTbhkIATnJGa4rsFpJtv8Hv70M-EQcwezFUXaOauithr0y4m3Xnyows6xrjsHlA6xPk6d9SOVFR7H7fitn8myzRCahPvEC7smReTZi_1xLE0miRWmHia1iM-nOkgfObzjRDE7ncB6yPdeXnnFWvCbo-joJs5In8M_hZjDYdy7z8UCpjMMYYNyHJs",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0OWY5MWQ0YjYwN2M0YzkzMTQzMjJjZTllEgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    },
+    {
+      "order": 2,
+      "id": "41bcbe49ed8741aa9aa1fa4475a17630",
+      "title": "Đang nghe & Đọc đồng bộ - Văn Âm Mobile",
+      "slug": "02-dang-nghe-doc-dong-bo",
+      "width": 780,
+      "height": 1768,
+      "deviceType": "MOBILE",
+      "imageFile": "02-dang-nghe-doc-dong-bo.png",
+      "htmlFile": "02-dang-nghe-doc-dong-bo.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1Wql7BPH2pTFdoRF36NVpNz6PT7WYbF3qV8w_H5ls_uCEfR7CWAfrzSsvNGRgiUduBY4cfYHmXD4olysLeks-e4ebM7vlWQS5PkRZim02Xc8Wjr2Cf5Hq2VkCqcdmXqeuYCE_-Rf7t7j5s4bbnyo0iRnQKwl-McJOLQ2DQRctYkQubD4teleAGUQUZtG6z3f3WXuyzmxP5Td0EuSLLLmhSQxi5Q4hiONVZEAXmEbym8xFA5FB2rLi4WGbc",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0OWY3NzFkMDIwNGVhYjcwMDk4MTY4MGQ4EgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    },
+    {
+      "order": 3,
+      "id": "9563dfb95c334c9cb56c36f70ebac9ae",
+      "title": "Chi tiết sách - Văn Âm Mobile",
+      "slug": "03-chi-tiet-sach",
+      "width": 780,
+      "height": 2376,
+      "deviceType": "MOBILE",
+      "imageFile": "03-chi-tiet-sach.png",
+      "htmlFile": "03-chi-tiet-sach.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1V_1QybB8tmlzAx251rrWpea3vIDqM88X_UraxgaI-TrHnmZET1WvDOcdemekOexbhHZR9atQhqIGPvbQyZYmVLpecWSI9o95llK8fsM1oqsz0L1t9N4p6bwB8lYixfw5U3pjTFZOgnbYIneLbddeEmWiLzTNvyRSJtYfHEwtg_NtMeDysTdxduDdAE55JHBjxDQ4lEh_3Ik0igLfa8easeJzqdGFgkTScx_8FBJhsO3qsIbbzYTjGWmA",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0OWY4MWNlYjEwNjM5NzQ4MzZiMjhkN2Q3EgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    },
+    {
+      "order": 4,
+      "id": "9ba2d6220de44e40927e11ed035bdc43",
+      "title": "Quản lý giọng đọc - Văn Âm Mobile",
+      "slug": "04-quan-ly-giong-doc",
+      "width": 780,
+      "height": 3138,
+      "deviceType": "MOBILE",
+      "imageFile": "04-quan-ly-giong-doc.png",
+      "htmlFile": "04-quan-ly-giong-doc.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UeLVaA9K35O6KoQsPKbxttTgad14a9ZBhtQQSx-PsEevw0FFQSSN0Jn-nR6_KXaZ_qrgyZ-zvznyrj9I9gxrcLJl4RbaoVBqgg-uAOD544jwkKMqlr7GEfQi_OASrmx1lM-isqRJ3_bAVYx-j3yaWLZs_zfL6LHW7pJs9-wo_5EKw8RfkfxfI_8lat5iMMdMjA3xYZB2u89iO3gF4XW44xz1D_Oy1mTRTCKvPXggM6BIDsPuYAhTMLFQ",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0YjBiZDU3OGMwN2M0YzkzMTQzMjJjZTllEgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    },
+    {
+      "order": 5,
+      "id": "446bc84860304da1a5f5097d1b393c8b",
+      "title": "Thêm sách - Văn Âm Mobile",
+      "slug": "05-them-sach",
+      "width": 780,
+      "height": 2920,
+      "deviceType": "MOBILE",
+      "imageFile": "05-them-sach.png",
+      "htmlFile": "05-them-sach.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1WjFg9Vg7Z8D25cWc19U38h_MekaAG6-gqSIuEt37nw0ayRYSFgO_6mW393HCHZC_e0kehmJU7pPsuwZ2yWcYe90-CZVDIR8lsJz6mqNu1GWSsiihnhI6uek7PT7lEx6OCuBlSoFknKuVYIcBlxoAJ1IgIMKHsFBl0xvXY7_lJXzBh0v2Yq8rn_oHnO2NINYHct1MPKClkgAHsrqP-1d7HYZ3CLcvpv640phQSFFoFkgbf9nHBfj5MxN5k",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0OWNlZWNiYjQwNTRjZmNiNDI1MzE1MDk4EgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    },
+    {
+      "order": 6,
+      "id": "ff3993a438f54c8f974ce62e6c6a9530",
+      "title": "Cài đặt - Văn Âm Mobile",
+      "slug": "06-cai-dat",
+      "width": 780,
+      "height": 4180,
+      "deviceType": "MOBILE",
+      "imageFile": "06-cai-dat.png",
+      "htmlFile": "06-cai-dat.html",
+      "screenshotUrl": "https://lh3.googleusercontent.com/aida/AEtjO1UYk9jE_nCjOBOaW67ktUvaFMdZEIf2Zz4yp3KCdEW3sGzdpJBadxZ9X2qa8bZEm__qcc0U-ipNaHJk5gQlsTLZs5SDS4NMtbZ8jFPxhx4UiHxt7Yyj2ph1-Pz78hFLTz9fTQioAmyD84agVwr3zOhO0Q58cuxt3_ISapZpw9lhl6pv6CWfHx8XlrKWiLoG13PwrLsLuQ_o2LyTdn8c1Ikkv_3Ha4RxYzrHGO1ZaH6livJWNWZlgpmJYaI",
+      "htmlUrl": "https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ7Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpaCiVodG1sXzAwMDY1ZGI0OWNmZDU1N2EwMjJkNTc1NjlkMTljMWNjEgsSBxD9z_O_tw8YAZIBIwoKcHJvamVjdF9pZBIVQhM3Mzk1ODA1MjkzNTIwODMwMDQx&filename=&opi=89354086"
+    }
+  ]
+}

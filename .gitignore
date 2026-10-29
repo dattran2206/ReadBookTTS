@@ -1,35 +1,91 @@
-# Gradle files
+# ====================================================================
+# Android & Gradle Build Artifacts
+# ====================================================================
 .gradle/
 build/
+*/build/
+app/build/
 .kotlin/
+.navigation/
 
-# Local configuration file (sdk path, etc)
-local.properties
-
-# Log/OS Files
-*.log
-
-# Android Studio generated files and folders
-captures/
-.externalNativeBuild/
-.cxx/
-*.aab
+# Output packages
 *.apk
+*.aab
+*.ap_
+*.dex
 output-metadata.json
 
-# IntelliJ
-*.iml
+# C/C++ Native builds
+.externalNativeBuild/
+.cxx/
+
+# ====================================================================
+# Local Configuration & Environment Secrets
+# ====================================================================
+local.properties
+secrets.properties
+gradle.properties.local
+
+# Keystores & Signing Keys
+*.jks
+*.keystore
+*.key
+*.p12
+
+# Cloud credentials
+google-services.json
+*-credentials.json
+
+# ====================================================================
+# IDE & Editor Files
+# ====================================================================
+# IntelliJ IDEA / Android Studio
 .idea/
+*.iml
+*.ipr
+*.iws
 misc.xml
 deploymentTargetDropDown.xml
 render.experimental.xml
 
-# Keystore files
-*.jks
-*.keystore
+# VS Code / Cursor / Windsurf
+.vscode/
 
-# Google Services (e.g. APIs or Firebase)
-google-services.json
+# AI Agent tooling & local agent configs
+.agents/
+.gemini/
+.claude/
+.cursor/
 
-# Android Profiling
+# ====================================================================
+# Logs, Profiling & Crash Reports
+# ====================================================================
+*.log
 *.hprof
+captures/
+hs_err_pid*
+replay_pid*
+
+# ====================================================================
+# OS-Specific Files
+# ====================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ====================================================================
+# Exceptions (Ensure Critical Project Libraries are Tracked)
+# ====================================================================
+# Keep local native library dependencies
+!app/libs/*.aar
+!app/libs/*.jar

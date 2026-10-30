@@ -1,0 +1,61 @@
+================================================================================
+                    WORDWAVE - APKPURE STORE LISTING METADATA
+================================================================================
+
+[1. TÊN ỨNG DỤNG / APP TITLE] (Tối đa 50 ký tự)
+Wordwave: Sách Nói TTS AI Tiếng Việt
+
+(Tên tiếng Anh thay thế nếu chọn ngôn ngữ Quốc tế):
+Wordwave: AI Vietnamese TTS Audio Book Reader
+
+--------------------------------------------------------------------------------
+[2. MÔ TẢ NGẮN / SHORT DESCRIPTION] (Tối đa 80 ký tự)
+Đọc sách nói AI mượt mà, hỗ trợ EPUB/TXT/PDF, giọng đọc truyền cảm và sao lưu Drive.
+
+--------------------------------------------------------------------------------
+[3. THỂ LOẠI & ĐỘ TUỔI / CATEGORY & CONTENT RATING]
+- Category: Books & Reference (Sách & Tài liệu tham khảo)
+- Content Rating: Everyone (Mọi lứa tuổi / 3+)
+- Pricing: Free (Miễn phí)
+
+--------------------------------------------------------------------------------
+[4. TỪ KHÓA / TAGS & KEYWORDS]
+TTS Tiếng Việt, Sách Nói, Đọc Sách AI, Sherpa ONNX, Piper TTS, Text to Speech, Audio Book, EPUB Reader, PDF Reader, Hẹn giờ ngủ, Chế độ lái xe, Sao lưu Google Drive.
+
+--------------------------------------------------------------------------------
+[5. MÔ TẢ CHI TIẾT / FULL DESCRIPTION] (Hỗ trợ Markdown / Rich Text)
+Wordwave là ứng dụng đọc sách và nghe sách nói thế hệ mới dành riêng cho người yêu sách Việt Nam. Với sự kết hợp giữa công nghệ AI Text-to-Speech (TTS) cục bộ hiện đại và giao diện đọc sách chuẩn mực, Wordwave biến mọi tập tin văn bản thành một cuốn sách nói sống động, truyền cảm mà không tốn dữ liệu mạng.
+
+🌟 TÍNH NĂNG NỔI BẬT:
+
+🎙️ GIỌNG ĐỌC AI NATIVE TRUYỀN CẢM & OFFLINE 100%
+• Tích hợp mô hình AI Sherpa-ONNX & Piper TTS tiên tiến, tổng hợp âm thanh mượt mà, phát âm chuẩn xác ngữ điệu tiếng Việt.
+• Hoạt động hoàn toàn ngoại tuyến (Offline), bảo mật tuyệt đối dữ liệu cá nhân và tiết kiệm pin tối đa.
+• Hỗ trợ linh hoạt cả công nghệ Google Android System TTS mặc định.
+
+📖 TRẢI NGHIỆM ĐỌC SÁCH THÔNG MINH
+• Hỗ trợ đa dạng định dạng: TXT, EPUB, PDF.
+• Highlight Karaoke theo thời gian thực: Dễ dàng theo dõi từng câu văn đang được đọc.
+• Tùy biến linh hoạt: Điều chỉnh kích thước chữ, khoảng cách dòng, phông chữ (Georgia, Serif, Sans-serif) và 3 chủ đề dịu mắt (Sáng, Tối, Màu giấy Sepia ấm áp).
+
+🚗 CHẾ ĐỘ LÁI XE & AN TOÀN TRÊN MỌI CUNG ĐƯỜNG
+• Giao diện nút bấm siêu lớn, cử chỉ một chạm trực quan giúp điều khiển an toàn khi đang lái xe hoặc tập thể thao.
+
+⏱️ HẸN GIỜ TẮT THÔNG MINH & NHẠC NỀN THƯ GIÃN
+• Bộ đếm giờ ngủ tự động hạ âm lượng dần dần trước khi dừng đọc, giúp bạn đi vào giấc ngủ êm ái.
+• Tích hợp âm thanh thiên nhiên nền (tiếng mưa rơi, sóng biển, tiếng lửa sưởi, quán cà phê) tạo không gian đọc sách ấm cúng.
+
+☁️ SAO LƯU & ĐỒNG BỘ ĐÁM MÂY GOOGLE DRIVE
+• Sao lưu một chạm toàn bộ tủ sách, tiến độ đang đọc và ghi chú đánh dấu lên Google Drive của chính bạn.
+• Dễ dàng khôi phục trên thiết bị mới hoặc xuất file JSON dự phòng nội bộ an toàn.
+
+--------------------------------------------------------------------------------
+[6. CẬP NHẬT MỚI / WHAT'S NEW (V1.0.0)]
+- Ra mắt phiên bản Wordwave v1.0.0 chính thức trên APKPure.
+- Tích hợp Engine AI TTS Sherpa-ONNX đọc mượt mà ngoại tuyến.
+- Highlight câu đang đọc chuẩn xác theo thời gian thực (Karaoke).
+- Chế độ Lái xe & Hẹn giờ ngủ thông minh.
+- Hỗ trợ sao lưu và khôi phục trực tiếp với Google Drive.
+- Tối ưu hóa hiệu năng và tuân thủ tiêu chuẩn Android 14 / Android 15.
+
+================================================================================

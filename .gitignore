@@ -8,12 +8,18 @@ app/build/
 .kotlin/
 .navigation/
 
-# Output packages
+# Output packages & Signing exports
 *.apk
 *.aab
 *.ap_
 *.dex
+*.dm
+*.idsig
 output-metadata.json
+release/
+*/release/
+app/release/
+baselineProfiles/
 
 # C/C++ Native builds
 .externalNativeBuild/

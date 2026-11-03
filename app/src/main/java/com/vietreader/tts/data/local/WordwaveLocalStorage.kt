@@ -102,16 +102,9 @@ class WordwaveLocalStorage(private val context: Context) {
                     currentProgressPercent = progressPercent
                 )
 
-                val activeChapter = chapters.find { it.number == currentChapterNum } ?: chapters.firstOrNull()
-                val (sentences, totalDurationSec) = if (activeChapter != null && activeChapter.entryHref.isNotBlank()) {
-                    EpubAndTxtParser.loadEpubChapterSentences(
-                        epubFilePath = epubFilePath,
-                        entryHref = activeChapter.entryHref,
-                        chapterTitle = activeChapter.title
-                    )
-                } else {
-                    emptyList<TranscriptSentence>() to obj.optInt("totalDurationSeconds", 0)
-                }
+                // Lazy load: sentences are loaded on-demand when entering Reader, not during initial library restore
+                val sentences = emptyList<TranscriptSentence>()
+                val totalDurationSec = obj.optInt("totalDurationSeconds", 0)
 
                 loadedBooks.add(
                     Book(
@@ -283,6 +276,7 @@ class WordwaveLocalStorage(private val context: Context) {
             themeMode = theme,
             fontSizePx = prefs.getInt("fontSizePx", 17),
             autoScrollEnabled = prefs.getBoolean("autoScrollEnabled", true),
+            keepScreenOn = prefs.getBoolean("keepScreenOn", false),
             stopAtEndOfChapter = prefs.getBoolean("stopAtEndOfChapter", false),
             defaultSpeed = prefs.getFloat("defaultSpeed", 1.15f),
             dictionaryWordCount = dictCount,
@@ -306,6 +300,7 @@ class WordwaveLocalStorage(private val context: Context) {
             .putString("themeMode", settings.themeMode.name)
             .putInt("fontSizePx", settings.fontSizePx)
             .putBoolean("autoScrollEnabled", settings.autoScrollEnabled)
+            .putBoolean("keepScreenOn", settings.keepScreenOn)
             .putBoolean("stopAtEndOfChapter", settings.stopAtEndOfChapter)
             .putFloat("defaultSpeed", settings.defaultSpeed)
             .putBoolean("cloudSyncEnabled", settings.cloudSyncEnabled)

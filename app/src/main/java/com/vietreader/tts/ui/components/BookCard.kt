@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vietreader.tts.domain.model.Book
+import com.vietreader.tts.domain.model.BookFormat
 import java.io.File
 import com.vietreader.tts.ui.theme.Amber200
 import com.vietreader.tts.ui.theme.OnSurface
@@ -70,6 +71,11 @@ fun BookCard(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null
 ) {
+    val formatBadgeBg = when (book.format) {
+        BookFormat.PDF -> Color(0xFFC0392B).copy(alpha = 0.85f) // Đỏ gạch sang trọng cho PDF
+        BookFormat.TXT -> Color(0xFF27AE60).copy(alpha = 0.85f) // Xanh lá cây nhã nhặn cho TXT
+        BookFormat.EPUB -> Color.Black.copy(alpha = 0.35f)      // Classic cho EPUB
+    }
     val coverBrush = Brush.linearGradient(
         colors = listOf(
             Color(book.coverGradient.startColorHex),
@@ -120,15 +126,22 @@ fun BookCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = book.format.label,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 10.sp,
-                        letterSpacing = 1.2.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color.White.copy(alpha = 0.80f)
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(formatBadgeBg)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = book.format.label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            letterSpacing = 1.0.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
 
                 when {
                     isCurrentlyPlaying -> {
@@ -243,6 +256,11 @@ fun BookListItemCard(
     modifier: Modifier = Modifier,
     onLongClick: (() -> Unit)? = null
 ) {
+    val formatBadgeBg = when (book.format) {
+        BookFormat.PDF -> Color(0xFFC0392B).copy(alpha = 0.85f) // Đỏ gạch sang trọng cho PDF
+        BookFormat.TXT -> Color(0xFF27AE60).copy(alpha = 0.85f) // Xanh lá cây nhã nhặn cho TXT
+        BookFormat.EPUB -> Color.Black.copy(alpha = 0.35f)      // Classic cho EPUB
+    }
     val coverBrush = Brush.linearGradient(
         colors = listOf(
             Color(book.coverGradient.startColorHex),
@@ -281,12 +299,22 @@ fun BookListItemCard(
                     coverImagePath = book.coverImagePath,
                     modifier = Modifier.fillMaxSize()
                 )
-                Text(
-                    text = book.format.label,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                    color = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.padding(6.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(formatBadgeBg)
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = book.format.label,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.width(14.dp))

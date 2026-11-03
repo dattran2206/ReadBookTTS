@@ -76,6 +76,7 @@ class ReaderViewModel(
             sleepTimerMinutes = sleepTimerMinutes,
             sleepTimerRemainingSeconds = sleepTimerRemainingSeconds,
             isAutoScrollEnabled = appSettings.autoScrollEnabled,
+            isKeepScreenOn = appSettings.keepScreenOn,
             stopAtEndOfChapter = appSettings.stopAtEndOfChapter,
             highlightLevel = appSettings.highlightLevel,
             readingThemeMode = appSettings.themeMode,
@@ -103,6 +104,7 @@ class ReaderViewModel(
                 sleepTimerMinutes = repository.sleepTimerMinutes.value,
                 sleepTimerRemainingSeconds = repository.sleepTimerRemainingSeconds.value,
                 isAutoScrollEnabled = settings.autoScrollEnabled,
+                isKeepScreenOn = settings.keepScreenOn,
                 stopAtEndOfChapter = settings.stopAtEndOfChapter,
                 highlightLevel = settings.highlightLevel,
                 readingThemeMode = settings.themeMode,
@@ -131,7 +133,11 @@ class ReaderViewModel(
     }
 
     fun onSelectBook(bookId: String) {
-        repository.selectBookForPlayback(bookId)
+        val currentPlayback = repository.playbackState.value
+        // Only trigger initial book selection if entering Reader for a different book
+        if (currentPlayback?.bookId != bookId) {
+            repository.selectBookForPlayback(bookId)
+        }
     }
 
     fun onModeChange(mode: ReaderMode) {
@@ -147,11 +153,11 @@ class ReaderViewModel(
     }
 
     fun onPrevSentenceClick() {
-        repository.skipToPreviousSentence()
+        repository.skipToPreviousChapter()
     }
 
     fun onNextSentenceClick() {
-        repository.skipToNextSentence()
+        repository.skipToNextChapter()
     }
 
     fun onRewind15Click() {
@@ -221,6 +227,11 @@ class ReaderViewModel(
             autoScrollEnabled = !currentSettings.autoScrollEnabled,
             stopAtEndOfChapter = currentSettings.stopAtEndOfChapter
         )
+    }
+
+    fun onToggleKeepScreenOn() {
+        val current = repository.appSettings.value.keepScreenOn
+        repository.setKeepScreenOn(!current)
     }
 
     fun onHighlightLevelChange(level: HighlightLevel) {

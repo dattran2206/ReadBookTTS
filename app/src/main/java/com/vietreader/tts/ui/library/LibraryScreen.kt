@@ -8,16 +8,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,7 +49,9 @@ import com.vietreader.tts.ui.components.BookListItemCard
 import com.vietreader.tts.ui.components.FilterChipRow
 import com.vietreader.tts.ui.components.LibraryFilterBottomSheet
 import com.vietreader.tts.ui.components.LibraryTopBar
+import com.vietreader.tts.ui.theme.OnSurface
 import com.vietreader.tts.ui.theme.OnSurfaceVariant
+import com.vietreader.tts.ui.theme.Primary
 import com.vietreader.tts.ui.theme.VietReaderTheme
 
 /**
@@ -92,7 +101,7 @@ fun LibraryRoute(
         onImportClick = {
             onNavigateToAddBook()
             epubPickerLauncher.launch(
-                arrayOf("application/epub+zip", "text/plain", "application/octet-stream")
+                arrayOf("application/epub+zip", "text/plain", "application/pdf", "application/octet-stream")
             )
         },
         onBookClick = { bookId ->
@@ -135,6 +144,48 @@ fun LibraryScreen(
 ) {
     var bookPendingDelete by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf<com.vietreader.tts.domain.model.Book?>(null)
+    }
+
+    if (uiState.isImportingBook) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { /* Cannot cancel while processing I/O */ },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                modifier = Modifier.widthIn(min = 280.dp, max = 340.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Primary,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(44.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Đang xử lý tệp sách",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = OnSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = uiState.importProgressMessage.ifBlank { "Đang trích xuất nội dung và tạo ảnh bìa..." },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = OnSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        }
     }
 
     if (bookPendingDelete != null) {

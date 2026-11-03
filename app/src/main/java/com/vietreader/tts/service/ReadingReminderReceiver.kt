@@ -25,7 +25,23 @@ class ReadingReminderReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent?) {
-        if (intent?.action != ACTION_TRIGGER_REMINDER) return
+        val action = intent?.action ?: return
+
+        if (action == Intent.ACTION_BOOT_COMPLETED || action == "android.intent.action.QUICKBOOT_POWERON") {
+            Log.i(TAG, "Device rebooted: restoring reading reminder schedule")
+            val storage = WordwaveLocalStorage(context)
+            val settings = storage.loadAppSettings()
+            ReadingReminderScheduler.scheduleReminder(
+                context = context,
+                enabled = settings.reminderEnabled,
+                hour = settings.reminderHour,
+                minute = settings.reminderMinute,
+                days = settings.reminderDays
+            )
+            return
+        }
+
+        if (action != ACTION_TRIGGER_REMINDER) return
 
         Log.i(TAG, "Received reminder trigger broadcast")
 

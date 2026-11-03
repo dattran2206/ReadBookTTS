@@ -6,6 +6,7 @@ import android.util.Log
 import com.vietreader.tts.data.cloud.GoogleDriveSyncManager
 import com.vietreader.tts.data.local.WordwaveLocalStorage
 import com.vietreader.tts.data.parser.EpubAndTxtParser
+import com.vietreader.tts.data.parser.VietnameseSentenceTokenizer
 import com.vietreader.tts.data.tts.AiVoiceModelManager
 import com.vietreader.tts.data.tts.BackgroundMusicController
 import com.vietreader.tts.data.tts.SherpaOnnxTtsController
@@ -122,6 +123,8 @@ class BookRepositoryImpl : BookRepository {
     private var wordPacingJob: Job? = null
     private var playbackTickerJob: Job? = null
     private var persistJob: Job? = null
+    private var chapterLoadingJob: Job? = null
+    private val chapterLoadGenCounter = java.util.concurrent.atomic.AtomicLong(0L)
     private val voiceDownloadJobs = ConcurrentHashMap<String, Job>()
     private val persistMutex = Mutex()
     @Volatile
@@ -189,7 +192,7 @@ class BookRepositoryImpl : BookRepository {
             val sherpa = SherpaOnnxTtsController(
                 modelManager = modelMgr,
                 textSanitizer = { raw ->
-                    tts.applyPronunciationRules(tts.sanitizeTextForSpeech(raw))
+                    tts.prepareTextForSpeech(raw)
                 }
             )
             sherpaController = sherpa
@@ -268,14 +271,13 @@ class BookRepositoryImpl : BookRepository {
                     hasNativeWordRange = true
                     wordPacingJob?.cancel()
                     wordPacingJob = null
-                    repoScope.launch(Dispatchers.Main) {
-                        val current = _playbackState.value ?: return@launch
-                        if (current.activeSentenceIndex == sentenceIndex) {
-                            _playbackState.value = current.copy(
+                    _playbackState.update { current ->
+                        if (current != null && current.activeSentenceIndex == sentenceIndex) {
+                            current.copy(
                                 activeWordStart = start,
                                 activeWordEnd = end
                             )
-                        }
+                        } else current
                     }
                 }
             }
@@ -288,14 +290,13 @@ class BookRepositoryImpl : BookRepository {
                     hasNativeWordRange = true
                     wordPacingJob?.cancel()
                     wordPacingJob = null
-                    repoScope.launch(Dispatchers.Main) {
-                        val current = _playbackState.value ?: return@launch
-                        if (current.activeSentenceIndex == sentenceIndex) {
-                            _playbackState.value = current.copy(
+                    _playbackState.update { current ->
+                        if (current != null && current.activeSentenceIndex == sentenceIndex) {
+                            current.copy(
                                 activeWordStart = start,
                                 activeWordEnd = end
                             )
-                        }
+                        } else current
                     }
                 }
             }
@@ -338,9 +339,16 @@ class BookRepositoryImpl : BookRepository {
     }
 
     override suspend fun importBookFromUri(context: Context, uri: Uri): Result<Book> = withContext(Dispatchers.IO) {
+        val defaultVoice = _voiceItems.value.firstOrNull {
+            it.isDefault || it.installStatus == VoiceInstallStatus.ACTIVE_DEFAULT
+        } ?: _voiceItems.value.firstOrNull() ?: VoiceCatalog.defaultSystemVoiceItems.first()
+        val defaultRegion = if (defaultVoice.isAiVoice) "AI • ${defaultVoice.gender}" else defaultVoice.gender
+
         val result = EpubAndTxtParser.importBookFromUri(
             context = context.applicationContext,
-            uri = uri
+            uri = uri,
+            defaultVoiceName = defaultVoice.name,
+            defaultVoiceRegion = defaultRegion
         )
         result.onSuccess { importedBook ->
             _books.update { currentList ->
@@ -378,8 +386,11 @@ class BookRepositoryImpl : BookRepository {
         val currentPlayback = _playbackState.value
         val selected = _books.value.find { it.id == bookId } ?: return
 
-        // If sentences are not loaded yet for a real EPUB book, load chapter sentences directly
-        if (selected.sentences.isEmpty() && !selected.epubFilePath.isNullOrBlank()) {
+        // If already playing this exact book, don't interrupt active playback
+        if (currentPlayback?.bookId == bookId && currentPlayback.isPlaying && selected.sentences.isNotEmpty()) return
+
+        // Always ensure chapter sentences are freshly loaded & sanitized for real imported books
+        if (!selected.epubFilePath.isNullOrBlank()) {
             selectChapterForPlayback(selected.id, selected.currentChapterNumber)
             return
         }
@@ -436,29 +447,64 @@ class BookRepositoryImpl : BookRepository {
         val selectedBook = _books.value.find { it.id == bookId } ?: return
         val targetChapter = selectedBook.chapters.find { it.number == chapterNumber } ?: return
 
-        // On-demand load sentences for the selected chapter if this is a real EPUB/TXT book
-        val (chapterSentences, chapterDurationSec) = if (
-            !selectedBook.epubFilePath.isNullOrBlank() && targetChapter.entryHref.isNotBlank()
-        ) {
-            EpubAndTxtParser.loadEpubChapterSentences(
-                epubFilePath = selectedBook.epubFilePath,
-                entryHref = targetChapter.entryHref,
-                chapterTitle = targetChapter.title
-            )
-        } else {
-            selectedBook.sentences to selectedBook.totalDurationSeconds
-        }
-
-        val durationFormatted = formatSeconds(chapterDurationSec)
-        val newChapterFullTitle = targetChapter.fullDisplayTitle
-        val newChapterShort = "Chương ${targetChapter.number}"
-        val newProgress = if (targetChapter.status == ChapterStatus.PLAYING && selectedBook.currentChapterNumber == chapterNumber) {
+        val targetTitle = targetChapter.fullDisplayTitle
+        val targetShort = "Chương ${targetChapter.number}"
+        val targetProgress = if (targetChapter.status == ChapterStatus.PLAYING && selectedBook.currentChapterNumber == chapterNumber) {
             targetChapter.progressPercent
         } else {
             0
         }
-        val newRemaining = "Còn $durationFormatted"
 
+        val isDifferentChapter = selectedBook.currentChapterNumber != chapterNumber
+        val cachedChapter = if (!selectedBook.epubFilePath.isNullOrBlank() && targetChapter.entryHref.isNotBlank()) {
+            EpubAndTxtParser.getCachedSentences(selectedBook.epubFilePath, targetChapter.entryHref)
+        } else null
+
+        val initialSentences = if (cachedChapter != null) {
+            cachedChapter.first
+        } else if (isDifferentChapter) {
+            emptyList()
+        } else {
+            selectedBook.sentences
+        }
+        val initialDurationSec = cachedChapter?.second ?: selectedBook.totalDurationSeconds
+        val initialSentenceIndex = if (targetProgress > 0 && initialSentences.size > 1) {
+            ((targetProgress / 100f) * initialSentences.lastIndex).roundToInt()
+                .coerceIn(0, initialSentences.lastIndex)
+        } else {
+            0
+        }
+
+        // 1. Immediately update PlaybackState with chapter metadata for 0ms instantaneous UI transition
+        val currentPlayback = _playbackState.value
+        _playbackState.value = PlaybackState(
+            bookId = selectedBook.id,
+            title = selectedBook.title,
+            author = selectedBook.author,
+            chapterTitle = targetTitle,
+            chapterShortLabel = targetShort,
+            progressPercent = targetProgress,
+            currentTime = "00:00",
+            totalTime = targetChapter.durationLabel.ifBlank { "10:00" },
+            currentSeconds = 0,
+            totalSeconds = initialDurationSec,
+            remainingLabel = "Còn ${targetChapter.durationLabel.ifBlank { "10:00" }}",
+            voiceName = selectedBook.voiceName,
+            isPlaying = wasPlaying,
+            playbackSpeed = currentPlayback?.playbackSpeed ?: _appSettings.value.defaultSpeed,
+            activeSentenceIndex = initialSentenceIndex,
+            isBookmarked = false,
+            coverGradient = selectedBook.coverGradient,
+            coverImagePath = selectedBook.coverImagePath
+        )
+
+        // 1b. Immediately update _books metadata (currentChapterNumber & chapters status) at 0ms
+        val totalChaps = selectedBook.totalChaptersCount.coerceAtLeast(selectedBook.chapters.size).coerceAtLeast(1)
+        val initialOverallProgress = calculateOverallBookProgress(
+            currentChapterNumber = chapterNumber,
+            totalChapters = totalChaps,
+            currentChapterProgressPercent = targetProgress
+        )
         _books.update { list ->
             list.map { book ->
                 if (book.id == bookId) {
@@ -470,10 +516,9 @@ class BookRepositoryImpl : BookRepository {
                                 remainingLabel = ""
                             )
                             ch.number == chapterNumber -> ch.copy(
-                                durationLabel = durationFormatted,
                                 status = ChapterStatus.PLAYING,
-                                progressPercent = newProgress,
-                                remainingLabel = newRemaining
+                                progressPercent = targetProgress,
+                                remainingLabel = "Còn ${targetChapter.durationLabel.ifBlank { "10:00" }}"
                             )
                             else -> ch.copy(
                                 status = ChapterStatus.UNPLAYED,
@@ -483,15 +528,12 @@ class BookRepositoryImpl : BookRepository {
                         }
                     }
                     book.copy(
-                        currentChapterTitle = newChapterFullTitle,
-                        currentChapterShortLabel = newChapterShort,
+                        currentChapterTitle = targetTitle,
+                        currentChapterShortLabel = targetShort,
                         currentChapterNumber = chapterNumber,
-                        progressPercent = newProgress,
-                        remainingTimeLabel = newRemaining,
-                        totalDurationSeconds = chapterDurationSec,
-                        currentPositionSeconds = 0,
-                        lastReadEpochMillis = System.currentTimeMillis(),
-                        sentences = chapterSentences,
+                        progressPercent = initialOverallProgress,
+                        totalDurationSeconds = initialDurationSec,
+                        sentences = initialSentences,
                         chapters = updatedChapters
                     )
                 } else {
@@ -500,44 +542,136 @@ class BookRepositoryImpl : BookRepository {
             }
         }
 
-        val currentPlayback = _playbackState.value
-        val initialIndex = if (newProgress > 0 && chapterSentences.size > 1) {
-            ((newProgress / 100f) * chapterSentences.lastIndex).roundToInt()
-                .coerceIn(0, chapterSentences.lastIndex)
-        } else {
-            0
-        }
-        val activeSentence = chapterSentences.getOrNull(initialIndex)
-        val currentSec = if (newProgress > 0) (activeSentence?.timestampSeconds ?: 0) else 0
-        val isBookmarked = selectedBook.bookmarks.any {
-            it.chapterNumber == chapterNumber && it.sentenceIndex == initialIndex
-        }
+        // 2. Offload PDF text stripping & parsing to background IO thread
+        val currentGen = chapterLoadGenCounter.incrementAndGet()
+        chapterLoadingJob?.cancel()
+        chapterLoadingJob = repoScope.launch(Dispatchers.IO) {
+            val (rawSentences, chapterDurationSec) = if (
+                !selectedBook.epubFilePath.isNullOrBlank() && targetChapter.entryHref.isNotBlank()
+            ) {
+                EpubAndTxtParser.loadEpubChapterSentences(
+                    epubFilePath = selectedBook.epubFilePath,
+                    entryHref = targetChapter.entryHref,
+                    chapterTitle = targetChapter.title
+                )
+            } else {
+                selectedBook.sentences to selectedBook.totalDurationSeconds
+            }
 
-        _playbackState.value = PlaybackState(
-            bookId = selectedBook.id,
-            title = selectedBook.title,
-            author = selectedBook.author,
-            chapterTitle = newChapterFullTitle,
-            chapterShortLabel = newChapterShort,
-            progressPercent = newProgress,
-            currentTime = formatSeconds(currentSec),
-            totalTime = durationFormatted,
-            currentSeconds = currentSec,
-            totalSeconds = chapterDurationSec,
-            remainingLabel = newRemaining,
-            voiceName = selectedBook.voiceName,
-            isPlaying = wasPlaying,
-            playbackSpeed = currentPlayback?.playbackSpeed ?: _appSettings.value.defaultSpeed,
-            activeSentenceIndex = initialIndex,
-            isBookmarked = isBookmarked,
-            coverGradient = selectedBook.coverGradient,
-            coverImagePath = selectedBook.coverImagePath
-        )
+            // Guard against race conditions from rapid chapter switching
+            if (chapterLoadGenCounter.get() != currentGen) {
+                return@launch
+            }
 
-        persistBooksAsync()
+            val chapterSentences = if (rawSentences.isNotEmpty()) {
+                val first = rawSentences[0]
+                val cleanedFirstText = VietnameseSentenceTokenizer.cleanLeadingHeadingFromSentence(
+                    text = first.text,
+                    chapterTitle = targetChapter.title
+                )
+                if (cleanedFirstText != first.text) {
+                    rawSentences.toMutableList().apply {
+                        this[0] = first.copy(text = cleanedFirstText)
+                    }
+                } else {
+                    rawSentences
+                }
+            } else {
+                rawSentences
+            }
 
-        if (wasPlaying) {
-            playCurrentSentence()
+            val durationFormatted = formatSeconds(chapterDurationSec)
+            val newChapterFullTitle = targetChapter.fullDisplayTitle
+            val newChapterShort = "Chương ${targetChapter.number}"
+            val newProgress = targetProgress
+            val newRemaining = "Còn $durationFormatted"
+
+            if (chapterLoadGenCounter.get() != currentGen) {
+                return@launch
+            }
+
+            _books.update { list ->
+                list.map { book ->
+                    if (book.id == bookId) {
+                        val updatedChapters = book.chapters.map { ch ->
+                            when {
+                                ch.number < chapterNumber -> ch.copy(
+                                    status = ChapterStatus.COMPLETED,
+                                    progressPercent = 100,
+                                    remainingLabel = ""
+                                )
+                                ch.number == chapterNumber -> ch.copy(
+                                    durationLabel = durationFormatted,
+                                    status = ChapterStatus.PLAYING,
+                                    progressPercent = newProgress,
+                                    remainingLabel = newRemaining
+                                )
+                                else -> ch.copy(
+                                    status = ChapterStatus.UNPLAYED,
+                                    progressPercent = 0,
+                                    remainingLabel = ""
+                                )
+                            }
+                        }
+                        val totalChaps = book.totalChaptersCount.coerceAtLeast(book.chapters.size).coerceAtLeast(1)
+                        val overallProgress = calculateOverallBookProgress(
+                            currentChapterNumber = chapterNumber,
+                            totalChapters = totalChaps,
+                            currentChapterProgressPercent = newProgress
+                        )
+                        book.copy(
+                            currentChapterTitle = newChapterFullTitle,
+                            currentChapterShortLabel = newChapterShort,
+                            currentChapterNumber = chapterNumber,
+                            progressPercent = overallProgress,
+                            remainingTimeLabel = newRemaining,
+                            totalDurationSeconds = chapterDurationSec,
+                            currentPositionSeconds = 0,
+                            lastReadEpochMillis = System.currentTimeMillis(),
+                            sentences = chapterSentences,
+                            chapters = updatedChapters
+                        )
+                    } else {
+                        book
+                    }
+                }
+            }
+
+            val initialIndex = if (newProgress > 0 && chapterSentences.size > 1) {
+                ((newProgress / 100f) * chapterSentences.lastIndex).roundToInt()
+                    .coerceIn(0, chapterSentences.lastIndex)
+            } else {
+                0
+            }
+            val activeSentence = chapterSentences.getOrNull(initialIndex)
+            val currentSec = if (newProgress > 0) (activeSentence?.timestampSeconds ?: 0) else 0
+            val isBookmarked = selectedBook.bookmarks.any {
+                it.chapterNumber == chapterNumber && it.sentenceIndex == initialIndex
+            }
+
+            if (chapterLoadGenCounter.get() != currentGen) {
+                return@launch
+            }
+
+            _playbackState.update { current ->
+                if (chapterLoadGenCounter.get() != currentGen) return@update current
+                current?.copy(
+                    progressPercent = newProgress,
+                    currentTime = formatSeconds(currentSec),
+                    totalTime = durationFormatted,
+                    currentSeconds = currentSec,
+                    totalSeconds = chapterDurationSec,
+                    remainingLabel = newRemaining,
+                    activeSentenceIndex = initialIndex,
+                    isBookmarked = isBookmarked
+                )
+            }
+
+            persistBooksAsync()
+
+            if (wasPlaying && chapterLoadGenCounter.get() == currentGen) {
+                playCurrentSentence()
+            }
         }
     }
 
@@ -582,6 +716,8 @@ class BookRepositoryImpl : BookRepository {
         sentenceDelayJob?.cancel()
         wordPacingJob?.cancel()
         wordPacingJob = null
+        sleepTimerJob?.cancel()
+        sleepTimerJob = null
         stopPlaybackTicker()
         _playbackState.update { it?.copy(isPlaying = false, activeWordStart = -1, activeWordEnd = -1) }
         ttsController?.stop()
@@ -808,6 +944,24 @@ class BookRepositoryImpl : BookRepository {
             if (book.chapters.any { it.number == nextChapterNum }) {
                 selectChapterForPlayback(book.id, nextChapterNum)
             }
+        }
+    }
+
+    override fun skipToPreviousChapter() {
+        val current = _playbackState.value ?: return
+        val book = _books.value.find { it.id == current.bookId } ?: return
+        val prevChapterNum = (book.currentChapterNumber - 1).coerceAtLeast(1)
+        if (prevChapterNum != book.currentChapterNumber && book.chapters.any { it.number == prevChapterNum }) {
+            selectChapterForPlayback(book.id, prevChapterNum)
+        }
+    }
+
+    override fun skipToNextChapter() {
+        val current = _playbackState.value ?: return
+        val book = _books.value.find { it.id == current.bookId } ?: return
+        val nextChapterNum = (book.currentChapterNumber + 1).coerceAtMost(book.totalChaptersCount.coerceAtLeast(book.chapters.size))
+        if (nextChapterNum != book.currentChapterNumber && book.chapters.any { it.number == nextChapterNum }) {
+            selectChapterForPlayback(book.id, nextChapterNum)
         }
     }
 
@@ -1239,6 +1393,14 @@ class BookRepositoryImpl : BookRepository {
         }
     }
 
+    override fun setKeepScreenOn(enabled: Boolean) {
+        _appSettings.update { current ->
+            val next = current.copy(keepScreenOn = enabled)
+            localStorage?.saveAppSettings(next)
+            next
+        }
+    }
+
     override fun updateHighlightLevel(level: HighlightLevel) {
         _appSettings.update { current ->
             val next = current.copy(highlightLevel = level)
@@ -1467,8 +1629,10 @@ class BookRepositoryImpl : BookRepository {
             runCatching {
                 val file = File(path)
                 if (file.exists()) file.delete()
-                val idxFile = File("$path.chapters.v2.idx")
-                if (idxFile.exists()) idxFile.delete()
+                val idxFile1 = File(file.parentFile, "${file.nameWithoutExtension}.chapters.v2.idx")
+                if (idxFile1.exists()) idxFile1.delete()
+                val idxFile2 = File("$path.chapters.v2.idx")
+                if (idxFile2.exists()) idxFile2.delete()
             }
         }
         targetBook.coverImagePath?.let { path ->
@@ -1525,6 +1689,17 @@ class BookRepositoryImpl : BookRepository {
         }
     }
 
+    private fun calculateOverallBookProgress(
+        currentChapterNumber: Int,
+        totalChapters: Int,
+        currentChapterProgressPercent: Int
+    ): Int {
+        if (totalChapters <= 1) return currentChapterProgressPercent.coerceIn(0, 100)
+        val completedChapters = (currentChapterNumber - 1).coerceAtLeast(0)
+        val overall = ((completedChapters.toFloat() + (currentChapterProgressPercent.coerceIn(0, 100) / 100f)) / totalChapters.toFloat()) * 100f
+        return overall.roundToInt().coerceIn(0, 100)
+    }
+
     private fun updateBookProgress(bookId: String, progressPercent: Int, currentSeconds: Int) {
         _books.update { list ->
             list.map { book ->
@@ -1539,8 +1714,14 @@ class BookRepositoryImpl : BookRepository {
                             ch
                         }
                     }
+                    val totalChaps = book.totalChaptersCount.coerceAtLeast(book.chapters.size).coerceAtLeast(1)
+                    val overallProgress = calculateOverallBookProgress(
+                        currentChapterNumber = book.currentChapterNumber,
+                        totalChapters = totalChaps,
+                        currentChapterProgressPercent = progressPercent
+                    )
                     book.copy(
-                        progressPercent = progressPercent,
+                        progressPercent = overallProgress,
                         currentPositionSeconds = currentSeconds,
                         lastReadEpochMillis = System.currentTimeMillis(),
                         chapters = updatedChapters

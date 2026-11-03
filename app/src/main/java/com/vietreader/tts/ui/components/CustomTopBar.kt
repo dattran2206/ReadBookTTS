@@ -38,6 +38,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.ToggleOff
 import androidx.compose.material.icons.outlined.ToggleOn
 import androidx.compose.material.icons.outlined.Tune
@@ -496,6 +497,7 @@ fun ReaderTopBar(
     sleepTimerMinutes: Int,
     isAutoScrollEnabled: Boolean,
     highlightLevel: HighlightLevel,
+    isKeepScreenOn: Boolean = false,
     onBackClick: () -> Unit,
     onModeChange: (ReaderMode) -> Unit,
     onToggleOverflowMenu: () -> Unit,
@@ -503,6 +505,7 @@ fun ReaderTopBar(
     onCycleSleepTimer: () -> Unit = {},
     onToggleAutoScroll: () -> Unit,
     onHighlightLevelChange: (HighlightLevel) -> Unit,
+    onToggleKeepScreenOn: () -> Unit = {},
     modifier: Modifier = Modifier,
     onOpenTocClick: (() -> Unit)? = null,
     onOpenAppearanceClick: (() -> Unit)? = null,
@@ -602,12 +605,14 @@ fun ReaderTopBar(
                     readerMode = readerMode,
                     isAutoScrollEnabled = isAutoScrollEnabled,
                     highlightLevel = highlightLevel,
+                    isKeepScreenOn = isKeepScreenOn,
                     onDismiss = onDismissOverflowMenu,
                     onModeChange = onModeChange,
                     onOpenSleepTimerSheet = onOpenSleepTimerSheet,
                     onCycleSleepTimer = onCycleSleepTimer,
                     onToggleAutoScroll = onToggleAutoScroll,
                     onHighlightLevelChange = onHighlightLevelChange,
+                    onToggleKeepScreenOn = onToggleKeepScreenOn,
                     onNavigateToVoiceManagement = onNavigateToVoiceManagement,
                     onNavigateToSettings = onNavigateToSettings
                 )
@@ -698,12 +703,14 @@ private fun ReaderOverflowDropdown(
     readerMode: ReaderMode = ReaderMode.READ_ALONG,
     isAutoScrollEnabled: Boolean,
     highlightLevel: HighlightLevel,
+    isKeepScreenOn: Boolean = false,
     onDismiss: () -> Unit,
     onModeChange: (ReaderMode) -> Unit = {},
     onOpenSleepTimerSheet: () -> Unit = {},
     onCycleSleepTimer: () -> Unit = onOpenSleepTimerSheet,
     onToggleAutoScroll: () -> Unit,
     onHighlightLevelChange: (HighlightLevel) -> Unit,
+    onToggleKeepScreenOn: () -> Unit = {},
     onNavigateToVoiceManagement: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
@@ -861,6 +868,53 @@ private fun ReaderOverflowDropdown(
                 imageVector = if (isAutoScrollEnabled) Icons.Outlined.ToggleOn else Icons.Outlined.ToggleOff,
                 contentDescription = null,
                 tint = if (isAutoScrollEnabled) Primary else Outline,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        // 4. Giữ sáng màn hình khi đọc
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onToggleKeepScreenOn)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.WbSunny,
+                    contentDescription = null,
+                    tint = if (isKeepScreenOn) Primary else Outline,
+                    modifier = Modifier.size(18.dp)
+                )
+                Column {
+                    Text(
+                        text = "Giữ sáng màn hình",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = OnSurface
+                    )
+                    Text(
+                        text = "Không tắt màn hình khi đọc",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 10.sp
+                        ),
+                        color = OnSurfaceVariant
+                    )
+                }
+            }
+            Icon(
+                imageVector = if (isKeepScreenOn) Icons.Outlined.ToggleOn else Icons.Outlined.ToggleOff,
+                contentDescription = null,
+                tint = if (isKeepScreenOn) Primary else Outline,
                 modifier = Modifier.size(22.dp)
             )
         }

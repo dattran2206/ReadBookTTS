@@ -46,6 +46,7 @@ data class AppSettings(
     val themeMode: ReadingThemeMode = ReadingThemeMode.IVORY,
     val fontSizePx: Int = 17,
     val autoScrollEnabled: Boolean = true,
+    val keepScreenOn: Boolean = false,
     val stopAtEndOfChapter: Boolean = false,
     val defaultSpeed: Float = 1.0f,
     val dictionaryWordCount: Int = 0,

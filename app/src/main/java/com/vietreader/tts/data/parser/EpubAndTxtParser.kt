@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.LruCache
 import android.util.Xml
 import com.vietreader.tts.domain.model.Book
 import com.vietreader.tts.domain.model.BookChapter
@@ -52,6 +53,26 @@ object EpubAndTxtParser {
     )
 
     /**
+     * Sanitizes external document file names to guard against Path Traversal
+     * and invalid file system characters.
+     */
+    fun sanitizeFileName(rawName: String): String {
+        val base = rawName.substringBeforeLast('.')
+        val ext = rawName.substringAfterLast('.', "")
+        val safeBase = base
+            .replace(Regex("[/\\\\:*?\"<>|\\x00-\\x1F]"), "_")
+            .replace(Regex("\\.{2,}"), "_")
+            .trim()
+            .take(100)
+            .ifBlank { "book_${System.currentTimeMillis()}" }
+        val safeExt = ext
+            .replace(Regex("[^a-zA-Z0-9]"), "")
+            .lowercase(Locale.ROOT)
+            .take(10)
+        return if (safeExt.isNotEmpty()) "$safeBase.$safeExt" else safeBase
+    }
+
+    /**
      * Imports a `.epub` or `.txt` document from a content [Uri] into app-private storage
      * and returns a fully populated [Book] with Chapter 1 loaded.
      */
@@ -61,12 +82,19 @@ object EpubAndTxtParser {
         defaultVoiceName: String = "Giọng hệ thống 1",
         defaultVoiceRegion: String = "Ngoại tuyến"
     ): Result<Book> = runCatching {
-        val displayName = resolveDisplayName(context, uri) ?: "Sach_moi.epub"
-        val isTxt = displayName.lowercase().endsWith(".txt")
+        val rawDisplayName = resolveDisplayName(context, uri) ?: "Sach_moi.epub"
+        val displayName = sanitizeFileName(rawDisplayName)
+        val lower = displayName.lowercase(Locale.ROOT)
+        val isTxt = lower.endsWith(".txt")
+        val isPdf = lower.endsWith(".pdf")
         val bookId = "book_${System.currentTimeMillis()}"
 
         val booksDir = File(context.filesDir, "books").apply { mkdirs() }
-        val extension = if (isTxt) "txt" else "epub"
+        val extension = when {
+            isPdf -> "pdf"
+            isTxt -> "txt"
+            else -> "epub"
+        }
         val destFile = File(booksDir, "$bookId.$extension")
 
         context.contentResolver.openInputStream(uri)?.use { input ->
@@ -75,23 +103,37 @@ object EpubAndTxtParser {
             }
         } ?: error("Không thể mở tệp sách từ bộ nhớ thiết bị")
 
-        if (isTxt) {
-            parseLocalTxtFile(
-                bookId = bookId,
-                txtFile = destFile,
-                originalFileName = displayName,
-                defaultVoiceName = defaultVoiceName,
-                defaultVoiceRegion = defaultVoiceRegion
-            )
-        } else {
-            parseLocalEpubFile(
-                context = context,
-                bookId = bookId,
-                epubFile = destFile,
-                originalFileName = displayName,
-                defaultVoiceName = defaultVoiceName,
-                defaultVoiceRegion = defaultVoiceRegion
-            )
+        when {
+            isPdf -> {
+                PdfBookParser.parsePdfFile(
+                    context = context,
+                    bookId = bookId,
+                    pdfFile = destFile,
+                    originalFileName = displayName,
+                    defaultVoiceName = defaultVoiceName,
+                    defaultVoiceRegion = defaultVoiceRegion
+                )
+            }
+            isTxt -> {
+                TxtBookParser.parseTxtFile(
+                    context = context,
+                    bookId = bookId,
+                    txtFile = destFile,
+                    originalFileName = displayName,
+                    defaultVoiceName = defaultVoiceName,
+                    defaultVoiceRegion = defaultVoiceRegion
+                )
+            }
+            else -> {
+                parseLocalEpubFile(
+                    context = context,
+                    bookId = bookId,
+                    epubFile = destFile,
+                    originalFileName = displayName,
+                    defaultVoiceName = defaultVoiceName,
+                    defaultVoiceRegion = defaultVoiceRegion
+                )
+            }
         }
     }.onFailure { err ->
         if (err is kotlin.coroutines.cancellation.CancellationException) throw err
@@ -228,15 +270,33 @@ object EpubAndTxtParser {
         )
     }
 
+    private val chapterSentencesMemoryCache = LruCache<String, Pair<List<TranscriptSentence>, Int>>(50)
+
     /**
-     * Loads and tokenizes a single chapter on-demand from `.epub` or `.txt`.
-     * Supports multi-file spine ranges and `#startAnchor~endAnchor` slicing (`file1#a~b;file2`).
+     * Retrieves cached parsed sentences for a chapter if previously loaded into RAM.
+     */
+    fun getCachedSentences(epubFilePath: String, entryHref: String): Pair<List<TranscriptSentence>, Int>? {
+        val cacheKey = "$epubFilePath::$entryHref"
+        return synchronized(chapterSentencesMemoryCache) {
+            chapterSentencesMemoryCache.get(cacheKey)
+        }
+    }
+
+    /**
+     * Loads and tokenizes a single chapter on-demand from `.epub`, `.pdf`, or `.txt`.
+     * Results are automatically cached in RAM to make reopening chapters instantaneous (0ms).
      */
     fun loadEpubChapterSentences(
         epubFilePath: String,
         entryHref: String,
         chapterTitle: String = ""
     ): Pair<List<TranscriptSentence>, Int> {
+        val cacheKey = "$epubFilePath::$entryHref"
+        synchronized(chapterSentencesMemoryCache) {
+            val cached = chapterSentencesMemoryCache.get(cacheKey)
+            if (cached != null) return cached
+        }
+
         val file = File(epubFilePath)
         if (!file.exists()) {
             return VietnameseSentenceTokenizer.tokenizePlainTextChapter(
@@ -245,39 +305,46 @@ object EpubAndTxtParser {
             )
         }
 
-        if (file.extension.equals("txt", ignoreCase = true)) {
-            return loadTxtChapterSentences(file, entryHref, chapterTitle)
-        }
+        val result = if (file.extension.equals("pdf", ignoreCase = true)) {
+            PdfBookParser.loadPdfChapterSentences(file, entryHref, chapterTitle)
+        } else if (file.extension.equals("txt", ignoreCase = true)) {
+            TxtBookParser.loadTxtChapterSentences(file, entryHref, chapterTitle)
+        } else {
+            runCatching {
+                ZipFile(file).use { zip ->
+                    val segmentSpecs = entryHref.split(';').filter { it.isNotBlank() }
+                    val combinedHtml = StringBuilder()
 
-        return runCatching {
-            ZipFile(file).use { zip ->
-                val segmentSpecs = entryHref.split(';').filter { it.isNotBlank() }
-                val combinedHtml = StringBuilder()
+                    for (spec in segmentSpecs) {
+                        val filePart = spec.substringBefore('#')
+                        val anchorPart = spec.substringAfter('#', "")
+                        val startAnchor = anchorPart.substringBefore('~', "").takeIf { it.isNotBlank() }
+                        val endAnchor = anchorPart.substringAfter('~', "").takeIf { it.isNotBlank() }
 
-                for (spec in segmentSpecs) {
-                    val filePart = spec.substringBefore('#')
-                    val anchorPart = spec.substringAfter('#', "")
-                    val startAnchor = anchorPart.substringBefore('~', "").takeIf { it.isNotBlank() }
-                    val endAnchor = anchorPart.substringAfter('~', "").takeIf { it.isNotBlank() }
+                        val entry = findZipEntryCompat(zip, filePart) ?: continue
+                        val rawHtml = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                        val slicedHtml = sliceHtmlByAnchors(rawHtml, startAnchor, endAnchor)
+                        combinedHtml.append(slicedHtml).append("\n")
+                    }
 
-                    val entry = findZipEntryCompat(zip, filePart) ?: continue
-                    val rawHtml = zip.getInputStream(entry).bufferedReader(Charsets.UTF_8).use { it.readText() }
-                    val slicedHtml = sliceHtmlByAnchors(rawHtml, startAnchor, endAnchor)
-                    combinedHtml.append(slicedHtml).append("\n")
+                    if (combinedHtml.isEmpty()) {
+                        error("Không tìm thấy nội dung chương $entryHref")
+                    }
+
+                    VietnameseSentenceTokenizer.tokenizeHtmlChapter(combinedHtml.toString(), chapterTitle)
                 }
-
-                if (combinedHtml.isEmpty()) {
-                    error("Không tìm thấy nội dung chương $entryHref")
-                }
-
-                VietnameseSentenceTokenizer.tokenizeHtmlChapter(combinedHtml.toString(), chapterTitle)
+            }.getOrElse {
+                VietnameseSentenceTokenizer.tokenizePlainTextChapter(
+                    "Không thể đọc nội dung chương này (${it.message}).",
+                    chapterTitle
+                )
             }
-        }.getOrElse {
-            VietnameseSentenceTokenizer.tokenizePlainTextChapter(
-                "Không thể đọc nội dung chương này (${it.message}).",
-                chapterTitle
-            )
         }
+
+        synchronized(chapterSentencesMemoryCache) {
+            chapterSentencesMemoryCache.put(cacheKey, result)
+        }
+        return result
     }
 
     /**
@@ -336,16 +403,34 @@ object EpubAndTxtParser {
     ): List<BookChapter> {
         val bookFile = File(epubFilePath)
         val cacheFile = File(bookFile.parentFile, "${bookFile.nameWithoutExtension}.chapters.v2.idx")
-        if (!cacheFile.exists() && bookFile.exists() && bookFile.extension.equals("epub", true)) {
-            // Automatically rebuild v2 chapter cache for previously imported EPUBs
-            runCatching {
-                ZipFile(bookFile).use { zip ->
-                    val opfEntryPath = findOpfPath(zip) ?: "metadata.opf"
-                    val opfBaseDir = opfEntryPath.substringBeforeLast('/', "").let {
-                        if (it.isEmpty()) "" else "$it/"
+        if (!cacheFile.exists() && bookFile.exists()) {
+            when {
+                bookFile.extension.equals("epub", true) -> {
+                    // Automatically rebuild v2 chapter cache for EPUBs
+                    runCatching {
+                        ZipFile(bookFile).use { zip ->
+                            val opfEntryPath = findOpfPath(zip) ?: "metadata.opf"
+                            val opfBaseDir = opfEntryPath.substringBeforeLast('/', "").let {
+                                if (it.isEmpty()) "" else "$it/"
+                            }
+                            val parsed = parseOpfAndToc(zip, opfEntryPath, opfBaseDir, bookFile.name)
+                            saveChaptersIndexCache(bookFile, parsed.chapters)
+                        }
                     }
-                    val parsed = parseOpfAndToc(zip, opfEntryPath, opfBaseDir, bookFile.name)
-                    saveChaptersIndexCache(bookFile, parsed.chapters)
+                }
+                bookFile.extension.equals("pdf", true) -> {
+                    // Automatically rebuild v2 chapter cache for PDFs
+                    runCatching {
+                        val chapters = PdfBookParser.extractPdfChapters(bookFile)
+                        saveChaptersIndexCache(bookFile, chapters)
+                    }
+                }
+                bookFile.extension.equals("txt", true) -> {
+                    // Automatically rebuild v2 chapter cache for TXTs
+                    runCatching {
+                        val chapters = TxtBookParser.extractTxtChapters(bookFile)
+                        saveChaptersIndexCache(bookFile, chapters)
+                    }
                 }
             }
         }
@@ -357,9 +442,14 @@ object EpubAndTxtParser {
                     val parts = line.split('\t')
                     if (parts.size < 4) return@mapNotNull null
                     val num = parts[0].toIntOrNull() ?: return@mapNotNull null
-                    val href = parts[1]
-                    val title = parts[2]
-                    val durationLabel = parts[3]
+
+                    // Auto-detect column layout: standard (num, href, title, duration) vs legacy (num, title, duration, href)
+                    val isCol1Href = parts[1].contains(':') || parts[1].contains('#') ||
+                            parts[1].contains(';') || parts[1].endsWith(".xhtml") ||
+                            parts[1].endsWith(".html") || parts[1].all { it.isDigit() || it == ':' }
+                    val href = if (isCol1Href) parts[1] else parts[3]
+                    val title = if (isCol1Href) parts[2] else parts[1]
+                    val durationLabel = if (isCol1Href) parts[3] else parts[2]
 
                     val status = when {
                         num < currentChapterNumber -> ChapterStatus.COMPLETED
@@ -390,12 +480,17 @@ object EpubAndTxtParser {
     private fun saveChaptersIndexCache(bookFile: File, chapters: List<BookChapter>) {
         runCatching {
             val cacheFile = File(bookFile.parentFile, "${bookFile.nameWithoutExtension}.chapters.v2.idx")
-            cacheFile.bufferedWriter(Charsets.UTF_8).use { writer ->
+            val tmpFile = File(bookFile.parentFile, "${bookFile.nameWithoutExtension}.chapters.v2.idx.tmp")
+            tmpFile.bufferedWriter(Charsets.UTF_8).use { writer ->
                 for (ch in chapters) {
                     val safeTitle = ch.title.replace('\t', ' ').replace('\n', ' ')
                     val safeHref = ch.entryHref.replace('\t', ' ').replace('\n', ' ')
                     writer.write("${ch.number}\t$safeHref\t$safeTitle\t${ch.durationLabel}\n")
                 }
+            }
+            if (!tmpFile.renameTo(cacheFile)) {
+                tmpFile.copyTo(cacheFile, overwrite = true)
+                tmpFile.delete()
             }
         }
     }
@@ -732,124 +827,6 @@ object EpubAndTxtParser {
                     !line.startsWith("Số trang:", ignoreCase = true)
             }
         return lines.joinToString("\n\n").ifBlank { plain }
-    }
-
-    private fun parseLocalTxtFile(
-        bookId: String,
-        txtFile: File,
-        originalFileName: String,
-        defaultVoiceName: String,
-        defaultVoiceRegion: String
-    ): Book {
-        val rawText = txtFile.readText(Charsets.UTF_8)
-        val cleanBookTitle = originalFileName
-            .substringBeforeLast('.')
-            .replace('_', ' ')
-            .trim()
-            .ifBlank { "Tệp văn bản TXT" }
-
-        val chapterBlocks = splitTxtIntoChapters(rawText)
-        val chapters = chapterBlocks.mapIndexed { idx, (title, rangeSpec) ->
-            val chapterNum = idx + 1
-            BookChapter(
-                number = chapterNum,
-                title = title,
-                durationLabel = "12:00",
-                status = if (chapterNum == 1) ChapterStatus.PLAYING else ChapterStatus.UNPLAYED,
-                progressPercent = 0,
-                remainingLabel = if (chapterNum == 1) "Còn 12:00" else "",
-                entryHref = rangeSpec
-            )
-        }
-        saveChaptersIndexCache(txtFile, chapters)
-
-        val firstChapter = chapters.first()
-        val (firstSentences, firstDurationSec) = loadTxtChapterSentences(
-            txtFile = txtFile,
-            rangeSpec = firstChapter.entryHref,
-            chapterTitle = firstChapter.title
-        )
-        val now = System.currentTimeMillis()
-        return Book(
-            id = bookId,
-            title = cleanBookTitle,
-            author = "Tệp TXT cá nhân",
-            categoryBadge = "Văn bản TXT",
-            genreLabel = "Tài liệu / Truyện",
-            totalDurationFormatted = "${(chapters.size * 12) / 60}g ${(chapters.size * 12) % 60}p",
-            totalChaptersCount = chapters.size,
-            synopsis = firstSentences.take(3).joinToString(" ") { it.text },
-            currentChapterTitle = firstChapter.fullDisplayTitle,
-            currentChapterShortLabel = "Chương 1",
-            progressPercent = 0,
-            remainingTimeLabel = "Còn ${VietnameseSentenceTokenizer.formatTimestamp(firstDurationSec)}",
-            voiceName = defaultVoiceName,
-            voiceRegion = defaultVoiceRegion,
-            format = BookFormat.TXT,
-            coverGradient = CoverGradient(0xFF2B4C3F, 0xFF1B3329, 0xFF0E1C16),
-            isNew = true,
-            isImported = true,
-            isCompleted = false,
-            addedAtEpochMillis = now,
-            lastReadEpochMillis = now,
-            totalDurationSeconds = firstDurationSec,
-            currentPositionSeconds = 0,
-            sentences = firstSentences,
-            chapters = chapters,
-            bookmarks = emptyList(),
-            epubFilePath = txtFile.absolutePath,
-            coverImagePath = null,
-            currentChapterNumber = 1
-        )
-    }
-
-    private fun splitTxtIntoChapters(rawText: String): List<Pair<String, String>> {
-        val normalized = rawText.replace("\r\n", "\n")
-        val headingRegex = Regex("(?m)^\\s*(?:Chương|Phần|Hồi|Chapter)\\s+\\d+[^\\n]*$")
-        val matches = headingRegex.findAll(normalized).toList()
-
-        if (matches.size >= 2) {
-            return matches.mapIndexed { idx, match ->
-                val startOffset = match.range.first
-                val endOffset = if (idx + 1 < matches.size) matches[idx + 1].range.first else normalized.length
-                val rawHeading = match.value.trim()
-                val cleanedTitle = cleanChapterTitle(rawHeading, idx + 1)
-                cleanedTitle to "$startOffset:$endOffset"
-            }
-        }
-
-        val chunks = mutableListOf<Pair<String, String>>()
-        var start = 0
-        var chapterIdx = 1
-        while (start < normalized.length) {
-            var end = (start + 8000).coerceAtMost(normalized.length)
-            if (end < normalized.length) {
-                val nextNewline = normalized.indexOf('\n', end)
-                if (nextNewline in end..(end + 1500)) {
-                    end = nextNewline
-                }
-            }
-            chunks.add("Phần $chapterIdx" to "$start:$end")
-            start = end
-            chapterIdx++
-        }
-        if (chunks.isEmpty()) {
-            chunks.add("Mở đầu" to "0:${normalized.length}")
-        }
-        return chunks
-    }
-
-    private fun loadTxtChapterSentences(
-        txtFile: File,
-        rangeSpec: String,
-        chapterTitle: String
-    ): Pair<List<TranscriptSentence>, Int> {
-        val normalized = txtFile.readText(Charsets.UTF_8).replace("\r\n", "\n")
-        val parts = rangeSpec.split(':')
-        val start = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, normalized.length) ?: 0
-        val end = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(start, normalized.length) ?: normalized.length
-        val slice = normalized.substring(start, end)
-        return VietnameseSentenceTokenizer.tokenizePlainTextChapter(slice, chapterTitle)
     }
 
     private fun findOpfPath(zip: ZipFile): String? {

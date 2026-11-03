@@ -32,6 +32,8 @@ class LibraryViewModel(
         val isSearchActive: Boolean = false,
         val searchQuery: String = "",
         val isFilterSheetVisible: Boolean = false,
+        val isImportingBook: Boolean = false,
+        val importProgressMessage: String = "",
         val selectedTab: AppBottomTab = AppBottomTab.LIBRARY
     )
 
@@ -58,6 +60,8 @@ class LibraryViewModel(
             isSearchActive = controls.isSearchActive,
             searchQuery = controls.searchQuery,
             isFilterSheetVisible = controls.isFilterSheetVisible,
+            isImportingBook = controls.isImportingBook,
+            importProgressMessage = controls.importProgressMessage,
             selectedTab = controls.selectedTab,
             playbackState = playbackState
         )
@@ -138,8 +142,15 @@ class LibraryViewModel(
         onImported: (Book) -> Unit = {},
         onError: (String) -> Unit = {}
     ) {
+        controlState.update {
+            it.copy(
+                isImportingBook = true,
+                importProgressMessage = "Đang phân tích và nạp tệp sách..."
+            )
+        }
         viewModelScope.launch {
             val result = repository.importBookFromUri(context, uri)
+            controlState.update { it.copy(isImportingBook = false, importProgressMessage = "") }
             result.onSuccess { book ->
                 onImported(book)
             }.onFailure { err ->

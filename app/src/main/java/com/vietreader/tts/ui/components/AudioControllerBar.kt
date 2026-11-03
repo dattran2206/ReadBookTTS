@@ -401,7 +401,7 @@ fun ExpandedAudioControllerBar(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.SkipPrevious,
-                            contentDescription = "Câu trước",
+                            contentDescription = "Chương trước",
                             tint = OnSurface,
                             modifier = Modifier.size(24.dp)
                         )
@@ -493,7 +493,7 @@ fun ExpandedAudioControllerBar(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.SkipNext,
-                            contentDescription = "Câu tiếp theo",
+                            contentDescription = "Chương tiếp theo",
                             tint = OnSurface,
                             modifier = Modifier.size(24.dp)
                         )

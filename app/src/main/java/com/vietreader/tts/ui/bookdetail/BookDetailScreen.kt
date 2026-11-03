@@ -173,6 +173,46 @@ fun BookDetailScreen(
     val book = uiState.book
     var showDeleteDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
+    // Tính toán trước index của chương hiện tại để ngay từ frame render đầu tiên danh sách đã nằm đúng vị trí
+    val initialChapterListIndex = androidx.compose.runtime.remember(book.id) {
+        val idx = book.chapters.indexOfFirst { it.number == book.currentChapterNumber }
+        if (idx > 0) 3 + idx else 0
+    }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState(
+        initialFirstVisibleItemIndex = initialChapterListIndex
+    )
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var resumeTrigger by androidx.compose.runtime.remember { androidx.compose.runtime.mutableLongStateOf(0L) }
+
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                resumeTrigger = System.currentTimeMillis()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Khi back lại từ ReaderScreen: scrollToItem tức thời (0ms, không animation) để loại bỏ hoàn toàn hiện tượng hiện đầu trang rồi mới giật cuộn
+    androidx.compose.runtime.LaunchedEffect(
+        uiState.selectedTab,
+        resumeTrigger
+    ) {
+        if (uiState.selectedTab == BookDetailTab.CHAPTERS && book.chapters.isNotEmpty() && resumeTrigger > 0L) {
+            val chapterIdx = book.chapters.indexOfFirst { it.number == book.currentChapterNumber }
+            if (chapterIdx >= 0) {
+                val targetListIndex = if (chapterIdx == 0) 0 else 3 + chapterIdx
+                listState.scrollToItem(
+                    index = targetListIndex,
+                    scrollOffset = if (chapterIdx == 0) 0 else -40
+                )
+            }
+        }
+    }
+
     if (showDeleteDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -220,6 +260,7 @@ fun BookDetailScreen(
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -263,6 +304,7 @@ fun BookDetailScreen(
                     ) { chapter ->
                         ChapterItemCard(
                             chapter = chapter,
+                            isCurrent = chapter.number == book.currentChapterNumber,
                             onClick = { onChapterClick(chapter.number) },
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 5.dp)
                         )
@@ -867,20 +909,21 @@ private fun ChapterListHeader(
 @Composable
 private fun ChapterItemCard(
     chapter: BookChapter,
+    isCurrent: Boolean = false,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isPlaying = chapter.status == ChapterStatus.PLAYING
-    val isCompleted = chapter.status == ChapterStatus.COMPLETED
+    val isPlaying = isCurrent || chapter.status == ChapterStatus.PLAYING
+    val isCompleted = !isPlaying && chapter.status == ChapterStatus.COMPLETED
 
     val containerColor = if (isPlaying) {
-        PrimaryFixed.copy(alpha = 0.28f)
+        PrimaryFixed.copy(alpha = 0.35f)
     } else {
         SurfaceContainerLow
     }
 
     val borderStroke = if (isPlaying) {
-        BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
+        BorderStroke(1.5.dp, Primary.copy(alpha = 0.65f))
     } else {
         BorderStroke(1.dp, Color.Transparent)
     }
@@ -902,25 +945,8 @@ private fun ChapterItemCard(
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Left Status Indicator (`w-8 h-8` = 32.dp)
-            when (chapter.status) {
-                ChapterStatus.COMPLETED -> {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(TertiaryContainer.copy(alpha = 0.16f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.CheckCircle,
-                            contentDescription = "Đã nghe xong",
-                            tint = Tertiary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                ChapterStatus.PLAYING -> {
+            when {
+                isPlaying -> {
                     Box(
                         modifier = Modifier.size(32.dp),
                         contentAlignment = Alignment.Center
@@ -954,7 +980,24 @@ private fun ChapterItemCard(
                     }
                 }
 
-                ChapterStatus.UNPLAYED -> {
+                isCompleted -> {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(TertiaryContainer.copy(alpha = 0.16f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = "Đã nghe xong",
+                            tint = Tertiary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                else -> {
                     val numFontSize = when {
                         chapter.number >= 1000 -> 8.5.sp
                         chapter.number >= 100 -> 10.sp

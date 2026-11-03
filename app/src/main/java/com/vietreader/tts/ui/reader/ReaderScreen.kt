@@ -6,7 +6,11 @@ import android.content.ContextWrapper
 import android.view.WindowManager
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +33,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -93,6 +100,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import com.vietreader.tts.data.parser.VietnameseSentenceTokenizer
 import com.vietreader.tts.domain.model.HighlightLevel
 import com.vietreader.tts.domain.model.PlaybackState
 import com.vietreader.tts.domain.model.ReaderMode
@@ -174,6 +182,7 @@ fun ReaderRoute(
         onToggleStopAtEndOfChapter = viewModel::onToggleStopAtEndOfChapter,
         onToggleAutoScroll = viewModel::onToggleAutoScroll,
         onHighlightLevelChange = viewModel::onHighlightLevelChange,
+        onToggleKeepScreenOn = viewModel::onToggleKeepScreenOn,
         onNavigateToVoiceManagement = onNavigateToVoiceManagement,
         onNavigateToSettings = onNavigateToSettings,
         onPrevChapterClick = viewModel::onPreviousChapterClick,
@@ -211,6 +220,7 @@ fun ReaderScreen(
     onToggleAutoScroll: () -> Unit,
     onHighlightLevelChange: (HighlightLevel) -> Unit,
     modifier: Modifier = Modifier,
+    onToggleKeepScreenOn: () -> Unit = {},
     onOpenSleepTimerSheet: () -> Unit = {},
     onDismissSleepTimerSheet: () -> Unit = {},
     onSelectSleepTimerMinutes: (Int) -> Unit = {},
@@ -226,18 +236,22 @@ fun ReaderScreen(
     onPrevChapterClick: () -> Unit = {},
     onNextChapterClick: () -> Unit = {}
 ) {
-    val listState = rememberLazyListState()
+    // Khởi tạo ngay vị trí câu đang đọc từ frame đầu tiên để không bị hiện đầu chương rồi mới giật nảy xuống câu
+    val initialSentenceItemIndex = remember(uiState.playbackState.bookId, uiState.currentChapterNumber) {
+        val activeIdx = uiState.playbackState.activeSentenceIndex
+        if (activeIdx > 0) (activeIdx + 1).coerceAtLeast(0) else 0
+    }
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = initialSentenceItemIndex
+    )
     val coroutineScope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Scroll to top when chapter changes, or restore position if opening existing progress
-    LaunchedEffect(uiState.currentChapterNumber, uiState.playbackState.bookId) {
+    // Scroll tức thời tới đúng vị trí câu khi chuyển chương hoặc khi câu vừa nạp xong (0ms, không animation trôi)
+    LaunchedEffect(uiState.currentChapterNumber, uiState.playbackState.bookId, uiState.sentences.size) {
         val targetSentence = uiState.playbackState.activeSentenceIndex
-        if (targetSentence > 0) {
-            listState.scrollToItem((targetSentence + 1).coerceAtLeast(0))
-        } else {
-            listState.scrollToItem(0)
-        }
+        val targetIndex = if (targetSentence > 0 && uiState.sentences.isNotEmpty()) (targetSentence + 1).coerceAtLeast(0) else 0
+        listState.scrollToItem(targetIndex)
     }
 
     // Re-sync scroll position immediately when returning to the app from background / Lock Screen
@@ -264,11 +278,14 @@ fun ReaderScreen(
     }
 
     val context = LocalContext.current
-    // In Driving Mode (ReaderMode.LISTEN), keep the screen awake so user can safely glance while driving
-    DisposableEffect(uiState.readerMode) {
+    // In Driving Mode or when Keep Screen On option is enabled, keep screen awake
+    val shouldKeepScreenOn = uiState.readerMode == ReaderMode.LISTEN || uiState.isKeepScreenOn
+    DisposableEffect(shouldKeepScreenOn) {
         val window = context.findActivity()?.window
-        if (uiState.readerMode == ReaderMode.LISTEN) {
+        if (shouldKeepScreenOn) {
             window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -285,13 +302,18 @@ fun ReaderScreen(
         label = "controls_collapse_progress"
     )
 
-    // Auto-scroll to active sentence when auto-scroll is enabled
+    // Auto-scroll to active sentence when audio is playing and auto-scroll is enabled
     LaunchedEffect(
         uiState.playbackState.activeSentenceIndex,
         uiState.isAutoScrollEnabled,
-        uiState.readerMode
+        uiState.readerMode,
+        uiState.playbackState.isPlaying
     ) {
-        if (uiState.isAutoScrollEnabled && uiState.readerMode == ReaderMode.READ_ALONG) {
+        if (uiState.playbackState.isPlaying &&
+            uiState.isAutoScrollEnabled &&
+            uiState.readerMode == ReaderMode.READ_ALONG &&
+            !listState.isScrollInProgress
+        ) {
             val targetItemIndex = (uiState.playbackState.activeSentenceIndex + 1)
                 .coerceAtLeast(0)
             listState.animateScrollToItem(targetItemIndex)
@@ -309,6 +331,7 @@ fun ReaderScreen(
                 sleepTimerMinutes = uiState.sleepTimerMinutes,
                 isAutoScrollEnabled = uiState.isAutoScrollEnabled,
                 highlightLevel = uiState.highlightLevel,
+                isKeepScreenOn = uiState.isKeepScreenOn,
                 onBackClick = onBackClick,
                 onModeChange = onModeChange,
                 onToggleOverflowMenu = onToggleOverflowMenu,
@@ -317,6 +340,7 @@ fun ReaderScreen(
                 onOpenSleepTimerSheet = onOpenSleepTimerSheet,
                 onToggleAutoScroll = onToggleAutoScroll,
                 onHighlightLevelChange = onHighlightLevelChange,
+                onToggleKeepScreenOn = onToggleKeepScreenOn,
                 onOpenTocClick = onTocClick,
                 onOpenAppearanceClick = onOpenAppearanceSheet,
                 onNavigateToVoiceManagement = onNavigateToVoiceManagement,
@@ -358,11 +382,11 @@ fun ReaderScreen(
                         isCollapsed = uiState.isControlsCollapsed,
                         onToggleCollapseControls = onToggleControlsCollapsed,
                         onSeekToSeconds = onSeekToSeconds,
-                        onPrevSentenceClick = onPrevSentenceClick,
+                        onPrevSentenceClick = onPrevChapterClick,
                         onRewind15Click = onRewind15Click,
                         onTogglePlayPause = onTogglePlayPause,
                         onForward15Click = onForward15Click,
-                        onNextSentenceClick = onNextSentenceClick,
+                        onNextSentenceClick = onNextChapterClick,
                         onCycleSpeedClick = onCycleSpeedClick,
                         onSelectVoice = onSelectVoice,
                         onTocClick = onTocClick,
@@ -432,8 +456,10 @@ fun ReaderScreen(
                 ReaderAppearanceSheetContent(
                     currentTheme = uiState.readingThemeMode,
                     currentFontSizePx = uiState.fontSizePx,
+                    isKeepScreenOn = uiState.isKeepScreenOn,
                     onUpdateTheme = onUpdateTheme,
                     onUpdateFontSize = onUpdateFontSize,
+                    onToggleKeepScreenOn = onToggleKeepScreenOn,
                     onClose = onDismissAppearanceSheet
                 )
             }
@@ -551,10 +577,39 @@ private fun ReadAlongCanvas(
             }
         }
 
+        // Loading indicator placeholder while chapter sentences are parsing
+        if (sentences.isEmpty()) {
+            item(key = "chapter_loading_placeholder") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = Primary,
+                            strokeWidth = 2.5.dp
+                        )
+                        Text(
+                            text = "Đang tải nội dung chương...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = inkColor.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
+
         // Sync Reading Paragraphs (.sentence-item)
         itemsIndexed(
             items = sentences,
-            key = { _, sentence -> sentence.id }
+            key = { _, sentence -> sentence.id },
+            contentType = { _, _ -> "sentence_item" }
         ) { index, sentence ->
             val isActive = index == activeSentenceIndex
             val itemClick = remember(index, onSentenceClick) { { onSentenceClick(index) } }
@@ -663,12 +718,15 @@ private fun SyncSentenceParagraphItem(
     }
     val primaryColor = Primary
 
-    val sentenceSpans = remember(sentence.text, isActive) {
-        if (isActive) VietnameseTextHighlighter.getSentenceSpans(sentence.text) else null
+    val rawText = sentence.text
+    val effectiveText = rawText
+
+    val sentenceSpans = remember(effectiveText, isActive) {
+        if (isActive) VietnameseTextHighlighter.getSentenceSpans(effectiveText) else null
     }
 
     val styledText = remember(
-        sentence.text,
+        effectiveText,
         sentenceSpans,
         isActive,
         highlightLevel,
@@ -680,7 +738,7 @@ private fun SyncSentenceParagraphItem(
         primaryColor
     ) {
         VietnameseTextHighlighter.buildHighlightedParagraph(
-            text = sentence.text,
+            text = effectiveText,
             isActive = isActive,
             highlightLevel = highlightLevel,
             activeWordStart = activeWordStart,
@@ -744,8 +802,28 @@ private fun DrivingModeCanvas(
     onExitDrivingMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val activeSentence = sentences.getOrNull(playbackState.activeSentenceIndex)?.text
+    val activeParagraphText = sentences.getOrNull(playbackState.activeSentenceIndex)?.text
         ?: playbackState.title
+
+    val sentenceSpans = remember(activeParagraphText) {
+        VietnameseTextHighlighter.getSentenceSpans(activeParagraphText)
+    }
+
+    val currentSentenceSpan = remember(sentenceSpans, playbackState.activeWordStart) {
+        if (sentenceSpans.size <= 1) {
+            sentenceSpans.firstOrNull()
+        } else if (playbackState.activeWordStart >= 0) {
+            sentenceSpans.find { span ->
+                playbackState.activeWordStart in span.start..span.end
+            } ?: sentenceSpans.find { span ->
+                playbackState.activeWordStart < span.end
+            } ?: sentenceSpans.lastOrNull()
+        } else {
+            sentenceSpans.firstOrNull()
+        }
+    }
+
+    val displaySentenceText = currentSentenceSpan?.text?.ifBlank { activeParagraphText } ?: activeParagraphText
 
     Column(
         modifier = modifier
@@ -881,8 +959,13 @@ private fun DrivingModeCanvas(
                             shape = CircleShape,
                             color = SurfaceContainer
                         ) {
+                            val badgeText = if (sentenceSpans.size > 1 && currentSentenceSpan != null) {
+                                "${playbackState.activeSentenceIndex + 1} / ${sentences.size} • Câu ${currentSentenceSpan.index + 1}/${sentenceSpans.size}"
+                            } else {
+                                "${playbackState.activeSentenceIndex + 1} / ${sentences.size}"
+                            }
                             Text(
-                                text = "${playbackState.activeSentenceIndex + 1} / ${sentences.size}",
+                                text = badgeText,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 11.sp
@@ -894,7 +977,7 @@ private fun DrivingModeCanvas(
                     }
                 }
 
-                // Giant Active Sentence Text
+                // Giant Active Sentence Text with smooth Sentence Paging (Phuong an 1)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -902,19 +985,41 @@ private fun DrivingModeCanvas(
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = activeSentence,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontFamily = HeadlineSerifFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 22.sp,
-                            lineHeight = 32.sp
-                        ),
-                        color = OnSurface,
-                        textAlign = TextAlign.Center,
-                        maxLines = 6,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    AnimatedContent(
+                        targetState = displaySentenceText,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(220)) togetherWith fadeOut(animationSpec = tween(180))
+                        },
+                        label = "driving_sentence_paging"
+                    ) { text ->
+                        val scrollState = rememberScrollState()
+                        val textLength = text.length
+                        val (fontSize, lineHeight) = when {
+                            textLength <= 80 -> 24.sp to 36.sp
+                            textLength <= 160 -> 22.sp to 33.sp
+                            else -> 20.sp to 30.sp
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(scrollState),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontFamily = HeadlineSerifFamily,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = fontSize,
+                                    lineHeight = lineHeight
+                                ),
+                                color = OnSurface,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
 
                 // Voice Tag
@@ -1002,7 +1107,7 @@ private fun DrivingModeCanvas(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Câu trước (54dp)
+            // Chương trước (54dp)
             Surface(
                 modifier = Modifier
                     .size(54.dp)
@@ -1015,7 +1120,7 @@ private fun DrivingModeCanvas(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Outlined.SkipPrevious,
-                        contentDescription = "Câu trước",
+                        contentDescription = "Chương trước",
                         tint = OnSurface,
                         modifier = Modifier.size(28.dp)
                     )
@@ -1106,7 +1211,7 @@ private fun DrivingModeCanvas(
                 }
             }
 
-            // Câu tiếp (54dp)
+            // Chương tiếp (54dp)
             Surface(
                 modifier = Modifier
                     .size(54.dp)
@@ -1119,7 +1224,7 @@ private fun DrivingModeCanvas(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Outlined.SkipNext,
-                        contentDescription = "Câu tiếp theo",
+                        contentDescription = "Chương tiếp theo",
                         tint = OnSurface,
                         modifier = Modifier.size(28.dp)
                     )
@@ -1212,8 +1317,10 @@ private fun DrivingModeCanvas(
 private fun ReaderAppearanceSheetContent(
     currentTheme: ReadingThemeMode,
     currentFontSizePx: Int,
+    isKeepScreenOn: Boolean = false,
     onUpdateTheme: (ReadingThemeMode) -> Unit,
     onUpdateFontSize: (Int) -> Unit,
+    onToggleKeepScreenOn: () -> Unit = {},
     onClose: () -> Unit
 ) {
     val fontSizes = listOf(14, 16, 17, 19, 21, 24)
@@ -1304,6 +1411,58 @@ private fun ReaderAppearanceSheetContent(
                         }
                     }
                 }
+            }
+        }
+
+        // 3. Keep Screen On
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { onToggleKeepScreenOn() },
+            shape = RoundedCornerShape(12.dp),
+            color = SurfaceContainer
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.WbSunny,
+                        contentDescription = null,
+                        tint = if (isKeepScreenOn) Primary else OnSurfaceVariant,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "Giữ sáng màn hình khi đọc",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            ),
+                            color = OnSurface
+                        )
+                        Text(
+                            text = "Màn hình không tự tắt để vừa nghe vừa đọc sách",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp
+                            ),
+                            color = OnSurfaceVariant
+                        )
+                    }
+                }
+                Switch(
+                    checked = isKeepScreenOn,
+                    onCheckedChange = { onToggleKeepScreenOn() }
+                )
             }
         }
 

@@ -20,6 +20,7 @@ data class ReaderUiState(
     val sleepTimerMinutes: Int = 30,
     val sleepTimerRemainingSeconds: Int = 30 * 60,
     val isAutoScrollEnabled: Boolean = true,
+    val isKeepScreenOn: Boolean = false,
     val stopAtEndOfChapter: Boolean = false,
     val highlightLevel: HighlightLevel = HighlightLevel.SENTENCE,
     val readingThemeMode: ReadingThemeMode = ReadingThemeMode.IVORY,

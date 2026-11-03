@@ -17,6 +17,8 @@ data class LibraryUiState(
     val isSearchActive: Boolean = false,
     val searchQuery: String = "",
     val isFilterSheetVisible: Boolean = false,
+    val isImportingBook: Boolean = false,
+    val importProgressMessage: String = "",
     val selectedTab: AppBottomTab = AppBottomTab.LIBRARY,
     val playbackState: PlaybackState? = null
 ) {

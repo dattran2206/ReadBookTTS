@@ -8,6 +8,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import android.util.Log
+import com.vietreader.tts.data.parser.EnglishPhoneticNormalizer
 import com.vietreader.tts.domain.model.PronunciationRule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -216,8 +217,9 @@ class SystemTtsController(
         for (i in chars.indices) {
             val c = chars[i]
             when {
-                // Non-vocal symbols, bullets, geometric markers, brackets, code symbols
-                c in "*_#~`=|+^@<>{}\\[\\]/\\•·▪▫■□▲▼►◄◆◇★☆✓✔✕✖" -> {
+                // Non-vocal decorative symbols, bullets, geometric markers, brackets, code wrappers
+                // Note: Vocal math symbols (=, +, <, >) and Greek letters are preserved for speech
+                c in "*_#~`|^@{}\\[\\]/\\•·▪▫■□▲▼►◄◆◇★☆✓✔✕✖" -> {
                     chars[i] = ' '
                 }
                 // Sequences or isolated dashes/hyphens (keep single hyphen in words like Wi-Fi or Covid-19)
@@ -256,6 +258,18 @@ class SystemTtsController(
     }
 
     /**
+     * Fully prepares [text] for speech synthesis:
+     * 1. Sanitizes punctuation & special symbols (`sanitizeTextForSpeech`)
+     * 2. Applies user custom pronunciation rules (`applyPronunciationRules`)
+     * 3. Normalizes English words & tech terms into smooth Vietnamese phonetics (`EnglishPhoneticNormalizer.normalize`)
+     */
+    fun prepareTextForSpeech(text: String): String {
+        val sanitizedBase = sanitizeTextForSpeech(text)
+        val withUserRules = applyPronunciationRules(sanitizedBase)
+        return EnglishPhoneticNormalizer.normalize(withUserRules)
+    }
+
+    /**
      * Speaks the sentence at [sentenceIndex] with the given [text].
      * If TTS is not yet ready, queues the request to be executed once initialized.
      */
@@ -266,7 +280,7 @@ class SystemTtsController(
         pitch: Float = currentPitch
     ) {
         val sanitizedBase = sanitizeTextForSpeech(text)
-        val sanitized = applyPronunciationRules(sanitizedBase)
+        val sanitized = prepareTextForSpeech(text)
         isCurrentUtteranceLengthModified = sanitized.length != sanitizedBase.length
         val gen = utteranceGenCounter.incrementAndGet()
         activeUtteranceGen = gen
